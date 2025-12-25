@@ -1,0 +1,1 @@
+pyinstaller.exe -w -F -i "images/icon/icon.ico" main.py
