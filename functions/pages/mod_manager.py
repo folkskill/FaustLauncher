@@ -97,7 +97,7 @@ class ModManager:
         refresh_button.pack(side=tk.LEFT, padx=5)
         
         # 启用选中按钮
-        enable_button = self.create_styled_button(toolbar_inner, "✅ 启用选中", 
+        enable_button = self.create_styled_button(toolbar_inner, " 启用选中", 
                                                 self.enable_selected, '#27ae60')
         enable_button.pack(side=tk.LEFT, padx=5)
         
@@ -233,7 +233,7 @@ class ModManager:
             
             # 根据文件状态添加菜单项
             if self.is_file_disabled(filename):
-                menu.add_command(label="✅ 启用", command=lambda: self.enable_file(filename))
+                menu.add_command(label=" 启用", command=lambda: self.enable_file(filename))
             else:
                 menu.add_command(label="⛔ 禁用", command=lambda: self.disable_file(filename))
             
@@ -287,7 +287,7 @@ class ModManager:
         
         try:
             shutil.copy2(file_path, dest_path)
-            self.status_var.set(f"✅ 已添加文件: {filename}")
+            self.status_var.set(f" 已添加文件: {filename}")
             self.refresh_file_list()
         except Exception as e:
             messagebox.showerror("错误", f"添加文件失败: {str(e)}")
@@ -320,7 +320,7 @@ class ModManager:
                     if self.is_file_disabled(filename):
                         display_name = f"❌ {filename}"
                     else:
-                        display_name = f"✅ {filename}"
+                        display_name = f" {filename}"
                     
                     # 添加到列表
                     item = self.tree.insert('', 'end', text=display_name, 
@@ -333,7 +333,7 @@ class ModManager:
         if self.is_file_disabled(filename):
             return "❌ 禁用"
         else:
-            return "✅ 启用"
+            return " 启用"
     
     def get_file_size(self, file_path):
         """获取文件大小"""
@@ -401,7 +401,7 @@ class ModManager:
                 enabled_count += 1
         
         if enabled_count > 0:
-            self.status_var.set(f"✅ 已启用 {enabled_count} 个文件")
+            self.status_var.set(f" 已启用 {enabled_count} 个文件")
         self.refresh_file_list()
     
     def disable_selected(self):

@@ -53,6 +53,8 @@ class TerminalRedirector:
     
     def _add_message_to_terminal(self, message):
         """添加格式化消息到终端"""
+        message = self.process_message(message)
+
         if '\r' in message:
             return
         self.text_widget.config(state=tk.NORMAL)
@@ -63,15 +65,17 @@ class TerminalRedirector:
         
         # 根据消息内容确定级别
         level = "info"
-        if "错误" in message or "失败" in message or "❌" in message:
+        if "❌" in message:
             level = "error"
-        elif "成功" in message or "完成" in message or "✅" in message:
+        elif "✅" in message:
             level = "success"
-        elif "警告" in message or "⚠️" in message:
+        elif "⚠️" in message:
             level = "warning"
+        elif ("🔄" in message) or ("📦" in message):
+            level = "wait"
         
         # 插入带时间戳和颜色的消息
-        self.text_widget.insert(tk.END, f"[{timestamp}] ", "info")
+        self.text_widget.insert(tk.END, f"[{timestamp}]", "info")
         self.text_widget.insert(tk.END, message + "\n", level)
         
         # 自动滚动到底部
@@ -82,7 +86,50 @@ class TerminalRedirector:
         
         # 立即更新显示
         self.text_widget.update_idletasks()
-    
+
+    @staticmethod
+    def process_message(message:str) -> str: # type: ignore
+        """根据消息内容添加表情符号"""
+        emoji_dict = {
+            "🚀": [
+                "启动"
+            ],
+            "💡": [
+                "提示",
+                "提示信息",
+            ],
+            "⚠️": [
+                "警告",
+                "不存在"
+            ],
+            "❌": [
+                "错误",
+                "失败",
+                "异常"
+            ],
+            "✅": [
+                "成功",
+                "完成",
+                "已经"
+            ],
+            "🔄": [
+                "正在",
+                "加载中",
+                "更新中"
+            ],
+            "📦": [
+                "安装",
+                "下载",
+                "解压"
+            ],
+        }
+        # 遍历字典，检查消息中是否包含关键字
+        for emoji, keywords in emoji_dict.items():
+            for keyword in keywords:
+                if keyword in message:
+                    return f"{emoji} {message}"
+        return message
+        
     def flush(self):
         """重定向flush方法"""
         # 处理缓冲区中剩余的消息
@@ -298,11 +345,11 @@ class FaustLauncherApp:
                 open_custom_translation_tool(self)
                 print("🔧 自定义汉化工具已打开")
             except Exception as e:
-                print(f"❌ 打开自定义汉化工具失败: {e}")
+                print(f"打开自定义汉化工具失败: {e}")
                 import tkinter.messagebox as messagebox
                 messagebox.showerror("错误", f"打开自定义汉化工具失败: {str(e)}")
         else:
-            print("❌ 自定义汉化工具未正确导入")
+            print("自定义汉化工具未正确导入")
             import tkinter.messagebox as messagebox
             messagebox.showerror("错误", "自定义汉化工具未正确导入，请检查functions目录")
     
@@ -558,6 +605,13 @@ class FaustLauncherApp:
         
         # 设置文本组件为只读
         self.terminal_text.config(state=tk.DISABLED)
+
+        # 配置终端文本标签颜色
+        self.terminal_text.tag_config("info", foreground="#ffffff")
+        self.terminal_text.tag_config("error", foreground="#ff6b6b")
+        self.terminal_text.tag_config("success", foreground="#4bff4e")
+        self.terminal_text.tag_config("warning", foreground="#f9ca24")
+        self.terminal_text.tag_config("wait", foreground="#4ecbff")
         
         # 设置终端重定向
         self.setup_terminal_redirect()
@@ -601,9 +655,9 @@ class FaustLauncherApp:
         # 禁用文本组件编辑
         self.terminal_text.config(state=tk.DISABLED)
         
-        print("✅ 终端重定向已启用")
-    
-    def add_terminal_message(self, message):
+        print("终端重定向已启用")
+
+    def add_terminal_message(self, message:str):
         """添加消息到终端"""
         self.terminal_text.config(state=tk.NORMAL)
         self.terminal_text.insert(tk.END, message + "\n")
@@ -626,7 +680,7 @@ class FaustLauncherApp:
             self.root.clipboard_append(content)
             print("📋 终端内容已复制到剪贴板")
         except Exception as e:
-            print(f"❌ 复制失败: {e}")
+            print(f"复制失败: {e}")
     
     def init_features_page(self):
         """初始化功能页内容"""
@@ -866,7 +920,7 @@ class FaustLauncherApp:
         # 或者单独检测
         has_update, latest_info = check_new_version(version_info)
         if has_update:
-            print(f"启动器的新版本已经发布: {latest_info['version_name']}")
+            print(f"启动器的新版本已经发布: {latest_info['version_name']}") # type: ignore
             notify_new_version(latest_info)
 
         else:
@@ -1089,9 +1143,10 @@ def run_game():
         print(f"应用自定义汉化修改时出错: {e}")
     
     # 气泡渐变色处理
-    from functions.fancy.dialog_colorful import main as handle_colorful
-    handle_colorful()
-    print("气泡渐变色处理完成")
+    if settings_manager.get_setting('enable_text_gradient'):
+        from functions.fancy.dialog_colorful import main as handle_colorful
+        handle_colorful()
+        print("气泡渐变色处理完成")
 
     # 复制字体文件夹到汉化目录下
     print("开始复制字体文件夹到汉化目录下...")

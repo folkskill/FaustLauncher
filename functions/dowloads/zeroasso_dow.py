@@ -21,6 +21,7 @@ class DownloadGUI:
         self.root.title("下载中...")
         self.root.geometry("500x150")
         self.root.resizable(False, False)
+        # self.root.attributes("-transparentcolor","#ffffff")
 
         self.config_path = config_path
         self.is_downloading = True
@@ -32,38 +33,94 @@ class DownloadGUI:
         self.start_download()
         
     def create_widgets(self):
-        """创建简化界面组件"""
-        # 主框架
-        main_frame = ttk.Frame(self.root, padding=20)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        """创建美化版下载界面组件"""
+        # 设置窗口背景色
+        self.root.configure(bg='#f5f5f5')
         
-        # 当前文件
-        self.current_file_var = tk.StringVar(value="正在初始化...")
-        current_file_label = ttk.Label(main_frame, textvariable=self.current_file_var, font=('Microsoft YaHei', 10, 'bold'))
-        current_file_label.pack(anchor=tk.W, pady=(0, 10))
+        # 主框架 - 添加阴影效果和圆角
+        main_frame = tk.Frame(self.root, bg='#ffffff', relief='flat', bd=2, highlightbackground='#e0e0e0', highlightthickness=1)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # 进度条
+        # 标题区域
+        title_frame = tk.Frame(main_frame, bg='#ffffff')
+        title_frame.pack(fill=tk.X, pady=(15, 10))
+        
+        # 下载图标（使用Unicode字符模拟）
+        download_icon = tk.Label(title_frame, text="⬇️", font=('Microsoft YaHei', 16), bg='#ffffff')
+        download_icon.pack(side=tk.LEFT, padx=(15, 10))
+        
+        # 当前文件 - 使用更醒目的样式
+        self.current_file_var = tk.StringVar(value="正在初始化下载...")
+        current_file_label = tk.Label(title_frame, textvariable=self.current_file_var, 
+                                     font=('Microsoft YaHei', 11, 'bold'), bg='#ffffff', 
+                                     fg='#2c3e50', anchor='w')
+        current_file_label.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 15))
+        
+        # 进度条区域
+        progress_frame = tk.Frame(main_frame, bg='#ffffff')
+        progress_frame.pack(fill=tk.X, padx=15, pady=(0, 10))
+        
+        # 进度条 - 使用自定义颜色
         self.progress_var = tk.DoubleVar()
-        self.progress_bar = ttk.Progressbar(main_frame, variable=self.progress_var, maximum=100)
-        self.progress_bar.pack(fill=tk.X, pady=5)
+        style = ttk.Style()
+        style.configure("Custom.Horizontal.TProgressbar", 
+                       troughcolor='#ecf0f1', 
+                       background='#3498db', 
+                       bordercolor='#bdc3c7',
+                       lightcolor='#3498db',
+                       darkcolor='#2980b9')
+        
+        self.progress_bar = ttk.Progressbar(progress_frame, variable=self.progress_var, 
+                                           maximum=100, style="Custom.Horizontal.TProgressbar")
+        self.progress_bar.pack(fill=tk.X, pady=(5, 8))
         
         # 进度信息框架
-        info_frame = ttk.Frame(main_frame)
-        info_frame.pack(fill=tk.X, pady=5)
+        info_frame = tk.Frame(main_frame, bg='#ffffff')
+        info_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
         
-        # 进度百分比
+        # 进度百分比 - 使用更大的字体和更好的颜色
         self.progress_text_var = tk.StringVar(value="0%")
-        progress_label = ttk.Label(info_frame, textvariable=self.progress_text_var, font=('Microsoft YaHei', 9))
+        progress_label = tk.Label(info_frame, textvariable=self.progress_text_var, 
+                                 font=('Microsoft YaHei', 10, 'bold'), bg='#ffffff', 
+                                 fg='#27ae60')
         progress_label.pack(side=tk.LEFT)
         
-        # 下载速度
+        # 下载速度 - 使用更专业的显示
         self.speed_var = tk.StringVar(value="速度: 0 KB/s")
-        speed_label = ttk.Label(info_frame, textvariable=self.speed_var, font=('Microsoft YaHei', 9))
+        speed_label = tk.Label(info_frame, textvariable=self.speed_var, 
+                              font=('Microsoft YaHei', 9), bg='#ffffff', 
+                              fg='#7f8c8d')
         speed_label.pack(side=tk.RIGHT)
         
+        # 添加状态指示器
+        status_frame = tk.Frame(main_frame, bg='#ffffff')
+        status_frame.pack(fill=tk.X, padx=15, pady=(0, 10))
+        
+        self.status_var = tk.StringVar(value="🔄 准备下载...")
+        status_label = tk.Label(status_frame, textvariable=self.status_var, 
+                               font=('Microsoft YaHei', 9), bg='#ffffff', 
+                               fg='#e67e22')
+        status_label.pack(side=tk.LEFT)
+        
+        # 添加底部装饰线
+        separator = ttk.Separator(main_frame, orient='horizontal')
+        separator.pack(fill=tk.X, padx=15, pady=(5, 0))
+      
     def update_progress(self, percent, downloaded, total, speed):
         """更新进度显示"""
         self.progress_var.set(percent)
+        
+        # 更新状态指示器
+        if percent < 10:
+            self.status_var.set("🔄 初始化下载...")
+        elif percent < 50:
+            self.status_var.set("📥 下载中...")
+        elif percent < 90:
+            self.status_var.set("⚡ 马上就好...")
+        elif percent < 100:
+            self.status_var.set("🎯 即将完成...")
+        else:
+            self.status_var.set("下载完成!")
         
         # 格式化文件大小
         if total >= 1024*1024*1024:  # GB
@@ -80,7 +137,14 @@ class DownloadGUI:
             total_str = f"{total}B"
             
         self.progress_text_var.set(f"{percent:.1f}% ({downloaded_str}/{total_str})")
-        self.speed_var.set(f"速度: {speed:.1f} KB/s")
+        
+        # 格式化速度显示
+        if speed >= 1024:  # MB/s
+            speed_str = f"{speed/1024:.1f} MB/s"
+        else:  # KB/s
+            speed_str = f"{speed:.1f} KB/s"
+            
+        self.speed_var.set(f"速度: {speed_str}")
         self.root.update_idletasks()
         
     def start_download(self):
@@ -117,7 +181,7 @@ def get_github_release_url() -> tuple[str, str] | None:
         
         latest_release = fetcher.get_latest_release()
         if not latest_release:
-            return None
+            return None, None # type: ignore
             
         # 查找7z文件
         windows_assets = latest_release.get_assets_by_extension(".7z")
@@ -125,10 +189,10 @@ def get_github_release_url() -> tuple[str, str] | None:
             if "LimbusLocalize" in asset.name:
                 return asset.download_url, latest_release.name
                 
-        return None
+        return None, None # type: ignore
     except Exception as e:
         print(f"获取GitHub Release失败: {e}")
-        return None
+        return None, None # type: ignore
 
 
 # 保留原有的函数（用于命令行模式）
@@ -372,7 +436,7 @@ def download_file_with_gui(url, local_filename, gui, file_name):
                         
                     # 平滑渐变效果：持续向目标百分比移动
                     animation_elapsed = current_time - last_animation_time
-                    if animation_elapsed > 0.01:  # 每0.01秒更新一次动画
+                    if animation_elapsed > 0.1:  # 每0.1秒更新一次动画
                         if current_animated_percent < target_percent:
                             # 使用缓动函数实现平滑过渡
                             progress_diff = target_percent - current_animated_percent
@@ -449,16 +513,16 @@ def download_and_extract_gui(gui, config_path: str = "") -> bool:
     need_update_translate = True
 
     while not github_url:
-        if timeout_counter >= 5:
+        if timeout_counter >= 10:
             gui.current_file_var.set("❌ 获取GitHub Release信息失败，已达最大重试次数")
             return False
         
         github_url, name = get_github_release_url() # type: ignore
 
         if not github_url:
-            gui.current_file_var.set("❌ 获取GitHub Release信息失败，准备重试...")
             timeout_counter += 1
-            time.sleep(3)
+            gui.current_file_var.set(f"❌ 获取GitHub Release信息失败，准备重试...\n(剩余次数 {10 - timeout_counter})")
+            time.sleep(1)
         else:
             print (f"获取到下载链接: {github_url}\n 零协汉化版本号: {name}")
             if not check_need_up_translate(name):

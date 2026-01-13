@@ -47,7 +47,7 @@ def set_bubble_json_files(host, port, user, password, database, battle_speech_fi
                 )
                 """
                 cursor.execute(create_table_query)
-                print("✅ 创建faust_launcher表格成功")
+                print("创建faust_launcher表格成功")
             
             # 检查记录是否存在
             cursor.execute("SELECT COUNT(*) as count FROM faust_launcher")
@@ -60,7 +60,7 @@ def set_bubble_json_files(host, port, user, password, database, battle_speech_fi
                 VALUES (%s, %s, %s)
                 """
                 cursor.execute(insert_query, (battle_speech_file, cultivation_file, mowe_file))
-                print("✅ 插入JSON文件记录成功")
+                print("插入JSON文件记录成功")
             else:
                 # 更新现有记录
                 update_query = """
@@ -71,17 +71,17 @@ def set_bubble_json_files(host, port, user, password, database, battle_speech_fi
                 WHERE id = 1
                 """
                 cursor.execute(update_query, (battle_speech_file, cultivation_file, mowe_file))
-                print("✅ 更新JSON文件记录成功")
+                print("更新JSON文件记录成功")
             
             # 验证设置
             cursor.execute("SELECT battle_speech_bubble, battle_speech_bubble_cultivation, battle_speech_bubble_mowe FROM faust_launcher WHERE id = 1")
             result = cursor.fetchone()
             
             if result:
-                print(f"✅ JSON文件设置成功")
-                print(f"  - BattleSpeechBubbleDlg.json: {len(result['battle_speech_bubble'])} 字符")
-                print(f"  - BattleSpeechBubbleDlg_Cultivation.json: {len(result['battle_speech_bubble_cultivation'])} 字符")
-                print(f"  - BattleSpeechBubbleDlg_mowe.json: {len(result['battle_speech_bubble_mowe'])} 字符")
+                print(f"JSON文件设置成功")
+                print(f" - BattleSpeechBubbleDlg.json: {len(result['battle_speech_bubble'])} 字符")
+                print(f" - BattleSpeechBubbleDlg_Cultivation.json: {len(result['battle_speech_bubble_cultivation'])} 字符")
+                print(f" - BattleSpeechBubbleDlg_mowe.json: {len(result['battle_speech_bubble_mowe'])} 字符")
         
         # 提交更改
         connection.commit()
@@ -89,10 +89,10 @@ def set_bubble_json_files(host, port, user, password, database, battle_speech_fi
         return True
         
     except pymysql.Error as e:
-        print(f"❌ MySQL错误: {e}")
+        print(f"MySQL错误: {e}")
         return False
     except Exception as e:
-        print(f"❌ 错误: {e}")
+        print(f"错误: {e}")
         return False
     finally:
         # 确保连接关闭
@@ -139,17 +139,17 @@ def get_bubble_json_files(host, port, user, password, database):
             result = cursor.fetchone()
             
             if result and result['battle_speech_bubble'] and result['battle_speech_bubble_cultivation'] and result['battle_speech_bubble_mowe']:
-                print("✅ 获取JSON文件成功")
+                print("获取JSON文件成功")
                 return result['battle_speech_bubble'], result['battle_speech_bubble_cultivation'], result['battle_speech_bubble_mowe']
             else:
                 print("⚠️ JSON文件字段为空或记录不存在")
                 return None, None, None
         
     except pymysql.Error as e:
-        print(f"❌ MySQL错误: {e}")
+        print(f"MySQL错误: {e}")
         return None, None, None
     except Exception as e:
-        print(f"❌ 错误: {e}")
+        print(f"错误: {e}")
         return None, None, None
     finally:
         # 确保连接关闭
@@ -176,7 +176,7 @@ def upload_bubble_files_from_temp(host, port, user, password, database, temp_dir
     
     # 检查temp目录是否存在
     if not os.path.exists(temp_dir):
-        print(f"❌ temp目录不存在: {temp_dir}")
+        print(f"temp目录不存在: {temp_dir}")
         return False
     
     # 检查三个JSON文件是否存在
@@ -185,13 +185,13 @@ def upload_bubble_files_from_temp(host, port, user, password, database, temp_dir
     mowe_path = os.path.join(temp_dir, 'BattleSpeechBubbleDlg_mowe.json')
     
     if not os.path.exists(battle_speech_path):
-        print(f"❌ 文件不存在: {battle_speech_path}")
+        print(f"文件不存在: {battle_speech_path}")
         return False
     if not os.path.exists(cultivation_path):
-        print(f"❌ 文件不存在: {cultivation_path}")
+        print(f"文件不存在: {cultivation_path}")
         return False
     if not os.path.exists(mowe_path):
-        print(f"❌ 文件不存在: {mowe_path}")
+        print(f"文件不存在: {mowe_path}")
         return False
     
     try:
@@ -205,21 +205,21 @@ def upload_bubble_files_from_temp(host, port, user, password, database, temp_dir
         with open(mowe_path, 'r', encoding='utf-8') as f:
             mowe_content = f.read()
         
-        print(f"✅ 读取JSON文件成功")
-        print(f"  - BattleSpeechBubbleDlg.json: {len(battle_speech_content)} 字符")
-        print(f"  - BattleSpeechBubbleDlg_Cultivation.json: {len(cultivation_content)} 字符")
-        print(f"  - BattleSpeechBubbleDlg_mowe.json: {len(mowe_content)} 字符")
+        print(f"读取JSON文件成功")
+        print(f" - BattleSpeechBubbleDlg.json: {len(battle_speech_content)} 字符")
+        print(f" - BattleSpeechBubbleDlg_Cultivation.json: {len(cultivation_content)} 字符")
+        print(f" - BattleSpeechBubbleDlg_mowe.json: {len(mowe_content)} 字符")
         
         # 上传到数据库
         if set_bubble_json_files(host, port, user, password, database, 
                                battle_speech_content, cultivation_content, mowe_content):
-            print("✅ JSON文件上传到数据库成功")
+            print("JSON文件上传到数据库成功")
             return True
         else:
             return False
         
     except Exception as e:
-        print(f"❌ 上传JSON文件失败: {e}")
+        print(f"上传JSON文件失败: {e}")
         return False
 
 def download_bubble_files_to_game(host, port, user, password, database, game_path):
@@ -242,17 +242,17 @@ def download_bubble_files_to_game(host, port, user, password, database, game_pat
     battle_speech, cultivation, mowe = get_bubble_json_files(host, port, user, password, database)
     
     if not battle_speech or not cultivation or not mowe:
-        print("❌ 无法从数据库获取JSON文件内容")
+        print("无法从数据库获取JSON文件内容")
         return False
     
-    print(f"✅ 成功获取三个JSON文件内容")
-    print(f"  - BattleSpeechBubbleDlg.json: {len(battle_speech)} 字符")
-    print(f"  - BattleSpeechBubbleDlg_Cultivation.json: {len(cultivation)} 字符")
-    print(f"  - BattleSpeechBubbleDlg_mowe.json: {len(mowe)} 字符")
+    print(f"成功获取三个JSON文件内容")
+    print(f" - BattleSpeechBubbleDlg.json: {len(battle_speech)} 字符")
+    print(f" - BattleSpeechBubbleDlg_Cultivation.json: {len(cultivation)} 字符")
+    print(f" - BattleSpeechBubbleDlg_mowe.json: {len(mowe)} 字符")
     
     # 检查游戏路径是否存在
     if not os.path.exists(game_path):
-        print(f"❌ 游戏路径不存在: {game_path}")
+        print(f"游戏路径不存在: {game_path}")
         return False
     
     # 目标目录：游戏目录下的LimbusCompany_Data/Lang/LLC_zh-CN
@@ -266,25 +266,25 @@ def download_bubble_files_to_game(host, port, user, password, database, game_pat
         battle_speech_path = os.path.join(target_dir, 'BattleSpeechBubbleDlg.json')
         with open(battle_speech_path, 'w', encoding='utf-8') as f:
             f.write(battle_speech)
-        print(f"✅ 保存 BattleSpeechBubbleDlg.json 成功")
+        print(f"保存 BattleSpeechBubbleDlg.json 成功")
         
         # 保存BattleSpeechBubbleDlg_Cultivation.json
         cultivation_path = os.path.join(target_dir, 'BattleSpeechBubbleDlg_Cultivation.json')
         with open(cultivation_path, 'w', encoding='utf-8') as f:
             f.write(cultivation)
-        print(f"✅ 保存 BattleSpeechBubbleDlg_Cultivation.json 成功")
+        print(f"保存 BattleSpeechBubbleDlg_Cultivation.json 成功")
         
         # 保存BattleSpeechBubbleDlg_mowe.json
         mowe_path = os.path.join(target_dir, 'BattleSpeechBubbleDlg_mowe.json')
         with open(mowe_path, 'w', encoding='utf-8') as f:
             f.write(mowe)
-        print(f"✅ 保存 BattleSpeechBubbleDlg_mowe.json 成功")
+        print(f"保存 BattleSpeechBubbleDlg_mowe.json 成功")
         
-        print(f"✅ JSON文件已成功保存到: {target_dir}")
+        print(f"JSON文件已成功保存到: {target_dir}")
         return True
         
     except Exception as e:
-        print(f"❌ 保存JSON文件失败: {e}")
+        print(f"保存JSON文件失败: {e}")
         return False
 
 def check_bubble_files_exist(host, port, user, password, database):
@@ -343,14 +343,14 @@ def get_all_records(host, port, user, password, database):
             cursor.execute("SELECT * FROM faust_launcher ORDER BY id")
             results = cursor.fetchall()
             
-            print(f"✅ 获取到 {len(results)} 条记录")
+            print(f"获取到 {len(results)} 条记录")
             return results
         
     except pymysql.Error as e:
-        print(f"❌ MySQL错误: {e}")
+        print(f"MySQL错误: {e}")
         return []
     except Exception as e:
-        print(f"❌ 错误: {e}")
+        print(f"错误: {e}")
         return []
     finally:
         # 确保连接关闭
@@ -402,17 +402,17 @@ def create_version_table(host, port, user, password, database):
                 )
                 """
                 cursor.execute(create_table_query)
-                print("✅ 创建faust_versions表格成功")
+                print("创建faust_versions表格成功")
                 return True
             else:
-                print("✅ faust_versions表格已存在")
+                print("faust_versions表格已存在")
                 return True
         
     except pymysql.Error as e:
-        print(f"❌ MySQL错误: {e}")
+        print(f"MySQL错误: {e}")
         return False
     except Exception as e:
-        print(f"❌ 错误: {e}")
+        print(f"错误: {e}")
         return False
     finally:
         # 确保连接关闭
@@ -464,14 +464,14 @@ def add_version(host, port, user, password, database, version_name, bilibili_url
             # 提交更改
             connection.commit()
             
-            print(f"✅ 添加版本信息成功: {version_name}")
+            print(f"添加版本信息成功: {version_name}")
             return True
         
     except pymysql.Error as e:
-        print(f"❌ MySQL错误: {e}")
+        print(f"MySQL错误: {e}")
         return False
     except Exception as e:
-        print(f"❌ 错误: {e}")
+        print(f"错误: {e}")
         return False
     finally:
         # 确保连接关闭
@@ -529,14 +529,14 @@ def update_version(host, port, user, password, database, version_id, version_nam
             # 提交更改
             connection.commit()
             
-            print(f"✅ 更新版本信息成功: {version_name}")
+            print(f"更新版本信息成功: {version_name}")
             return True
         
     except pymysql.Error as e:
-        print(f"❌ MySQL错误: {e}")
+        print(f"MySQL错误: {e}")
         return False
     except Exception as e:
-        print(f"❌ 错误: {e}")
+        print(f"错误: {e}")
         return False
     finally:
         # 确保连接关闭
@@ -578,14 +578,14 @@ def delete_version(host, port, user, password, database, version_id):
             # 提交更改
             connection.commit()
             
-            print(f"✅ 删除版本信息成功: ID {version_id}")
+            print(f"删除版本信息成功: ID {version_id}")
             return True
         
     except pymysql.Error as e:
-        print(f"❌ MySQL错误: {e}")
+        print(f"MySQL错误: {e}")
         return False
     except Exception as e:
-        print(f"❌ 错误: {e}")
+        print(f"错误: {e}")
         return False
     finally:
         # 确保连接关闭
@@ -623,14 +623,14 @@ def get_all_versions(host, port, user, password, database):
             cursor.execute("SELECT * FROM faust_versions ORDER BY created_at DESC")
             results = cursor.fetchall()
             
-            print(f"✅ 获取到 {len(results)} 个版本信息")
+            print(f"获取到 {len(results)} 个版本信息")
             return results
         
     except pymysql.Error as e:
-        print(f"❌ MySQL错误: {e}")
+        print(f"MySQL错误: {e}")
         return []
     except Exception as e:
-        print(f"❌ 错误: {e}")
+        print(f"错误: {e}")
         return []
     finally:
         # 确保连接关闭
@@ -669,17 +669,17 @@ def get_latest_version(host, port, user, password, database):
             result = cursor.fetchone()
             
             if result:
-                print(f"✅ 获取最新版本信息: {result['version_name']}")
+                print(f"获取最新版本信息: {result['version_name']}")
                 return result
             else:
                 print("⚠️ 没有设置最新版本")
                 return None
         
     except pymysql.Error as e:
-        print(f"❌ MySQL错误: {e}")
+        print(f"MySQL错误: {e}")
         return None
     except Exception as e:
-        print(f"❌ 错误: {e}")
+        print(f"错误: {e}")
         return None
     finally:
         # 确保连接关闭
@@ -719,17 +719,17 @@ def get_version_by_id(host, port, user, password, database, version_id):
             result = cursor.fetchone()
             
             if result:
-                print(f"✅ 获取版本信息: {result['version_name']}")
+                print(f"获取版本信息: {result['version_name']}")
                 return result
             else:
                 print(f"⚠️ 版本ID {version_id} 不存在")
                 return None
         
     except pymysql.Error as e:
-        print(f"❌ MySQL错误: {e}")
+        print(f"MySQL错误: {e}")
         return None
     except Exception as e:
-        print(f"❌ 错误: {e}")
+        print(f"错误: {e}")
         return None
     finally:
         # 确保连接关闭
@@ -759,7 +759,7 @@ class VersionManagerGUI:
         self.refresh_versions()
         
         # 确保版本表格存在
-        create_version_table(**db_config)
+        create_version_table(**db_config) # type: ignore
     
     def create_widgets(self):
         # 标题
@@ -848,7 +848,7 @@ class VersionManagerGUI:
             self.tree.delete(item)
         
         # 获取所有版本信息
-        versions = get_all_versions(**self.db_config)
+        versions = get_all_versions(**self.db_config) # type: ignore
         
         # 添加数据到树形视图
         for version in versions:
@@ -856,7 +856,7 @@ class VersionManagerGUI:
                 version['id'],
                 version['version_name'],
                 version['bilibili_url'] or "",
-                "是" if version['is_latest'] else "否",
+                "是"if version['is_latest'] else "否",
                 version['created_at'].strftime("%Y-%m-%d %H:%M:%S") if version['created_at'] else ""
             ))
     
@@ -869,7 +869,7 @@ class VersionManagerGUI:
             self.current_version_id = values[0]
             
             # 获取版本详细信息
-            version = get_version_by_id(**self.db_config, version_id=self.current_version_id)
+            version = get_version_by_id(**self.db_config, version_id=self.current_version_id) # type: ignore
             if version:
                 self.version_name_entry.delete(0, tk.END)
                 self.version_name_entry.insert(0, version['version_name'])
@@ -902,7 +902,7 @@ class VersionManagerGUI:
                       version_name=version_name,
                       bilibili_url=bilibili_url,
                       version_description=version_description,
-                      is_latest=is_latest):
+                      is_latest=is_latest): # type: ignore
             messagebox.showinfo("成功", "版本添加成功！")
             self.clear_inputs()
             self.refresh_versions()
@@ -929,7 +929,7 @@ class VersionManagerGUI:
                         version_name=version_name,
                         bilibili_url=bilibili_url,
                         version_description=version_description,
-                        is_latest=is_latest):
+                        is_latest=is_latest): # type: ignore
             messagebox.showinfo("成功", "版本更新成功！")
             self.clear_inputs()
             self.refresh_versions()
@@ -943,7 +943,7 @@ class VersionManagerGUI:
             return
         
         if messagebox.askyesno("确认", "确定要删除这个版本吗？"):
-            if delete_version(**self.db_config, version_id=self.current_version_id):
+            if delete_version(**self.db_config, version_id=self.current_version_id): # type: ignore
                 messagebox.showinfo("成功", "版本删除成功！")
                 self.clear_inputs()
                 self.refresh_versions()
@@ -1008,7 +1008,7 @@ def check_new_version(current_version_name):
             return False, None
             
     except Exception as e:
-        print(f"❌ 检测新版本时出错: {e}")
+        print(f"检测新版本时出错: {e}")
         return False, None
 
 def notify_new_version(current_version_name):
@@ -1048,7 +1048,7 @@ def notify_new_version(current_version_name):
             return False
             
     except Exception as e:
-        print(f"❌ 通知新版本时出错: {e}")
+        print(f"通知新版本时出错: {e}")
         return False
 
 db_config = {
@@ -1078,7 +1078,7 @@ if __name__ == "__main__":
     elif choice == "2":
         game_path = input("请输入游戏目录路径: ").strip()
         if not game_path:
-            print("❌ 游戏目录路径不能为空")
+            print("游戏目录路径不能为空")
         else:
             success = download_bubble_files_to_game(**db_config, game_path=game_path)
     elif choice == "3":
@@ -1086,10 +1086,10 @@ if __name__ == "__main__":
         run_version_manager_gui()
         success = True
     else:
-        print("❌ 无效选择")
+        print("无效选择")
         success = False
     
     if success:
-        print("\n✅ 操作完成!")
+        print("\n 操作完成!")
     else:
-        print("\n❌ 操作失败!")
+        print("\n 操作失败!")

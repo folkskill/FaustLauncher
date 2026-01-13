@@ -6,7 +6,7 @@ def download_bubble_files(config_path: str = "") -> bool:
     game_path = config_path
     
     if not game_path:
-        print("❌ 未配置游戏路径，请在config/settings.json中设置game_path")
+        print("未配置游戏路径，请在config/settings.json中设置game_path")
         return False
     
     # 使用sql_manager中的下载功能
@@ -26,9 +26,9 @@ def main(config_path: str = ""):
     success = download_bubble_files(config_path=config_path)
     
     if success:
-        print("\n✅ 操作完成!")
+        print("操作完成!")
     else:
-        print("\n❌ 操作失败!")
+        print("操作失败!")
         
 if __name__ == "__main__":
     main()

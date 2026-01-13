@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox, colorchooser
 from functions.settings_manager import get_settings_manager
 
 class SettingsPage:
@@ -10,26 +10,68 @@ class SettingsPage:
         self.setting_widgets = {}
         self.bg_color = bg_color
         self.lighten_bg_color = lighten_bg_color
-        self.bg_color = bg_color
         self.create_widgets()
         self.auto_refresh()
     
     def create_widgets(self):
         """创建设置页面控件"""
-        # 创建标题
-        title_label = ttk.Label(self.parent, text="⚙️ 设置", 
-                               font=('Microsoft YaHei UI', 18, 'bold'),
-                               background=self.bg_color, foreground='white')
-        title_label.pack(pady=20)
         
         # 创建设置内容容器, 居中显示
         content_frame = tk.Frame(self.parent, bg=self.lighten_bg_color, relief='groove', borderwidth=3)
         content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
         
+        # 创建标签页控件
+        self.notebook = ttk.Notebook(content_frame)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        # 按page分组设置项
+        settings_by_page = self.group_settings_by_page()
+        
+        # 为每个page创建标签页
+        page_names = list(settings_by_page.keys())
+
+        for page_name in page_names:
+            page_frame = ttk.Frame(self.notebook)
+            self.notebook.add(page_frame, text=page_name)
+            
+            # 创建滚动区域
+            self.create_scrollable_settings_area(page_frame, settings_by_page[page_name])
+        
+        # 创建操作按钮区域
+        button_frame = tk.Frame(content_frame, bg=self.lighten_bg_color)
+        button_frame.pack(fill=tk.X, pady=5, padx=10)
+        
+        # 重置所有按钮
+        reset_all_btn = tk.Button(button_frame, text="↺ 重置所有设置",
+                                command=self.reset_all_settings,
+                                font=('Microsoft YaHei UI', 11, 'bold'),
+                                bg='#e67e22', fg='white',
+                                relief='raised', borderwidth=2,
+                                padx=20, pady=5)
+        reset_all_btn.pack(anchor=tk.CENTER, padx=10)
+    
+    def group_settings_by_page(self):
+        """按page分组设置项"""
+        settings = self.settings_manager.get_all_settings()
+        settings_by_page = {}
+        
+        for key, setting_info in settings.items():
+            if setting_info.get('type') == 'UNABLE_TO_EDIT':
+                continue  # 跳过无法编辑的设置项
+                
+            page = setting_info.get('page', '通用')  # 默认页面为通用
+            if page not in settings_by_page:
+                settings_by_page[page] = []
+            settings_by_page[page].append((key, setting_info))
+        
+        return settings_by_page
+    
+    def create_scrollable_settings_area(self, parent, settings_list):
+        """创建可滚动的设置区域"""
         # 创建滚动框架
-        canvas = tk.Canvas(content_frame, bg=self.bg_color, highlightthickness=0)
-        scrollbar = ttk.Scrollbar(content_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas, style="Card.TFrame")
+        canvas = tk.Canvas(parent, bg=self.bg_color, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg=self.bg_color)
         
         scrollable_frame.bind(
             "<Configure>",
@@ -40,10 +82,7 @@ class SettingsPage:
         canvas.configure(yscrollcommand=scrollbar.set)
         
         # 动态生成设置控件
-        self.create_settings_controls(scrollable_frame)
-        
-        # 创建操作按钮区域
-        self.create_action_buttons(scrollable_frame)
+        self.create_settings_controls(scrollable_frame, settings_list)
         
         # 打包滚动区域
         canvas.pack(side="left", fill="both", expand=True)
@@ -55,11 +94,9 @@ class SettingsPage:
         canvas.bind("<MouseWheel>", _on_mousewheel)
         scrollable_frame.bind("<MouseWheel>", _on_mousewheel)
     
-    def create_settings_controls(self, parent):
+    def create_settings_controls(self, parent, settings_list):
         """动态生成设置控件"""
-        settings = self.settings_manager.get_all_settings()
-        
-        for i, (key, setting_info) in enumerate(settings.items()):
+        for i, (key, setting_info) in enumerate(settings_list):
             setting_type = setting_info.get('type', 'UNABLE_TO_EDIT')
 
             if setting_type == 'UNABLE_TO_EDIT':
@@ -67,14 +104,14 @@ class SettingsPage:
 
             # 创建设置项框架
             setting_frame = tk.Frame(parent, bg=self.bg_color, relief='raised', borderwidth=1)
-            setting_frame.pack(fill=tk.X, padx=10, pady=8, ipady=8)
+            setting_frame.pack(fill=tk.X, padx=10, pady=8, ipady=8, ipadx=8)
             
             # 设置项标题和描述
             # 优先使用name字段，然后使用description字段，最后使用key
             setting_name = setting_info.get('name', setting_info.get('description', key))
             title_label = tk.Label(setting_frame, 
                                  text=setting_name,
-                                 font=('Microsoft YaHei UI', 11, 'bold'),
+                                 font=('微软雅黑', 11, 'bold'),
                                  bg=self.bg_color, fg='white')
             title_label.pack(anchor=tk.W, padx=15, pady=(5, 2))
             
@@ -82,7 +119,7 @@ class SettingsPage:
             if 'description' in setting_info and setting_info['description'] != setting_name:
                 desc_label = tk.Label(setting_frame, 
                                     text=setting_info['description'],
-                                    font=('Microsoft YaHei UI', 9),
+                                    font=('微软雅黑', 9),
                                     bg=self.bg_color, fg='#bdc3c7',
                                     wraplength=400, justify=tk.LEFT)
                 desc_label.pack(anchor=tk.W, padx=15, pady=(0, 5))
@@ -96,6 +133,8 @@ class SettingsPage:
                 self.create_string_control(setting_frame, key, setting_info, current_value)
             elif setting_type in ['integer', 'float']:
                 self.create_numeric_control(setting_frame, key, setting_info, current_value)
+            elif setting_type == 'color':
+                self.create_color_control(setting_frame, key, setting_info, current_value)
             
             # 添加重置按钮
             reset_btn = tk.Button(setting_frame, text="↺ 重置",
@@ -110,7 +149,12 @@ class SettingsPage:
         var = tk.BooleanVar(value=current_value)
         # 使用name字段作为复选框文本，如果没有name则使用description
         checkbox_text = setting_info.get('name', setting_info.get('description', key))
-        checkbox = tk.Checkbutton(parent, 
+        
+        # 创建控件框架
+        control_frame = tk.Frame(parent, bg=self.bg_color)
+        control_frame.pack(fill=tk.X, padx=15, pady=5)
+        
+        checkbox = tk.Checkbutton(control_frame, 
                                 text=checkbox_text,
                                 variable=var,
                                 command=lambda: self.on_boolean_change(key, var),
@@ -119,41 +163,43 @@ class SettingsPage:
                                 selectcolor='#3498db',
                                 activebackground=self.bg_color,
                                 activeforeground='white')
-        checkbox.pack(anchor=tk.W, padx=15, pady=5)
+        checkbox.pack(anchor=tk.W)
+        
         self.setting_widgets[key] = var
     
     def create_string_control(self, parent, key, setting_info, current_value):
         """创建字符串控件"""
+        # 创建控件框架
+        control_frame = tk.Frame(parent, bg=self.bg_color)
+        control_frame.pack(fill=tk.X, padx=15, pady=5)
+        
         if key == 'game_path':
             # 游戏路径特殊处理，添加浏览按钮
-            path_frame = tk.Frame(parent, bg=self.bg_color)
-            path_frame.pack(fill=tk.X, padx=15, pady=5)
-            
-            entry = tk.Entry(path_frame, 
+            entry = tk.Entry(control_frame, 
                            font=('Microsoft YaHei UI', 10),
                            width=40)
             entry.insert(0, current_value)
-            entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
             
-            browse_btn = tk.Button(path_frame, text="浏览",
+            browse_btn = tk.Button(control_frame, text="浏览",
                                  command=lambda: self.browse_game_path(entry),
                                  font=('Microsoft YaHei UI', 9),
                                  bg='#3498db', fg='white',
                                  relief='flat', padx=10)
-            browse_btn.pack(side=tk.RIGHT, padx=(5, 0))
-            
-            self.setting_widgets[key] = entry
+            browse_btn.pack(side=tk.RIGHT)
         else:
-            entry = tk.Entry(parent, 
+            entry = tk.Entry(control_frame, 
                            font=('Microsoft YaHei UI', 10),
                            width=50)
             entry.insert(0, current_value)
-            entry.pack(anchor=tk.W, padx=15, pady=5)
+            entry.pack(fill=tk.X, expand=True)
             entry.bind('<KeyRelease>', lambda e, k=key: self.on_string_change(k, entry))
-            self.setting_widgets[key] = entry
+        
+        self.setting_widgets[key] = entry
     
     def create_numeric_control(self, parent, key, setting_info, current_value):
         """创建数值控件"""
+        # 创建控件框架
         control_frame = tk.Frame(parent, bg=self.bg_color)
         control_frame.pack(fill=tk.X, padx=15, pady=5)
         
@@ -162,7 +208,7 @@ class SettingsPage:
                              text=f"当前值: {current_value}",
                              font=('Microsoft YaHei UI', 9),
                              bg=self.bg_color, fg='#bdc3c7')
-        value_label.pack(side=tk.LEFT)
+        value_label.pack(side=tk.LEFT, padx=(0, 10))
         
         # 滑动条
         min_val = setting_info.get('min', 0)
@@ -175,7 +221,7 @@ class SettingsPage:
                         orient=tk.HORIZONTAL,
                         length=200,
                         showvalue=False,
-                        command=lambda v, k=key: self.on_scale_change(k, v, value_label),
+                        command=lambda v, k=key, l=value_label: self.on_scale_change(k, v, l),
                         bg=self.bg_color, fg='white',
                         troughcolor=self.bg_color,
                         highlightbackground=self.bg_color)
@@ -184,19 +230,31 @@ class SettingsPage:
         
         self.setting_widgets[key] = scale
     
-    def create_action_buttons(self, parent):
-        """创建操作按钮"""
-        button_frame = tk.Frame(parent, bg=self.bg_color)
-        button_frame.pack(fill=tk.X, pady=20)
+    def create_color_control(self, parent, key, setting_info, current_value):
+        """创建颜色选择控件"""
+        # 创建控件框架
+        control_frame = tk.Frame(parent, bg=self.bg_color)
+        control_frame.pack(fill=tk.X, padx=15, pady=5)
         
-        # 重置所有按钮
-        reset_all_btn = tk.Button(button_frame, text="↺ 重置所有设置",
-                                command=self.reset_all_settings,
-                                font=('Microsoft YaHei UI', 11, 'bold'),
-                                bg='#e67e22', fg='white',
-                                relief='raised', borderwidth=4,
-                                padx=20, pady=10)
-        reset_all_btn.pack(side=tk.LEFT, padx=10)
+        # 颜色显示
+        color_frame = tk.Frame(control_frame, bg=current_value, width=50, height=30, relief='sunken', borderwidth=2)
+        color_frame.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # 颜色值文本框
+        color_entry = tk.Entry(control_frame, font=('Microsoft YaHei UI', 10), width=10)
+        color_entry.insert(0, current_value)
+        color_entry.pack(side=tk.LEFT, padx=(0, 5))
+        color_entry.bind('<KeyRelease>', lambda e, k=key, ce=color_entry, cf=color_frame: self.on_color_entry_change(k, ce, cf))
+        
+        # 颜色选择按钮
+        color_btn = tk.Button(control_frame, text="选择颜色",
+                            command=lambda k=key, ce=color_entry, cf=color_frame: self.on_color_button_click(k, ce, cf),
+                            font=('Microsoft YaHei UI', 9),
+                            bg='#3498db', fg='white',
+                            relief='flat', padx=8)
+        color_btn.pack(side=tk.LEFT)
+        
+        self.setting_widgets[key] = color_entry
     
     def on_boolean_change(self, key, var):
         """布尔值改变事件"""
@@ -211,6 +269,27 @@ class SettingsPage:
         value = float(value)
         self.settings_manager.set_setting(key, value)
         value_label.config(text=f"当前值: {value:.1f}")
+    
+    def on_color_entry_change(self, key, entry, color_frame):
+        """颜色文本框改变事件"""
+        color_value = entry.get()
+        # 验证颜色格式
+        try:
+            # 尝试设置颜色
+            color_frame.config(bg=color_value)
+            self.settings_manager.set_setting(key, color_value)
+        except:
+            pass  # 忽略无效颜色
+    
+    def on_color_button_click(self, key, entry, color_frame):
+        """颜色选择按钮点击事件"""
+        current_color = entry.get()
+        color = colorchooser.askcolor(initialcolor=current_color)[1]
+        if color:
+            entry.delete(0, tk.END)
+            entry.insert(0, color)
+            color_frame.config(bg=color)
+            self.settings_manager.set_setting(key, color)
     
     def browse_game_path(self, entry):
         """浏览游戏路径"""
@@ -263,6 +342,17 @@ class SettingsPage:
                     widget.insert(0, current_value) # type: ignore
             elif setting_type in ['integer', 'float']:
                 widget.set(current_value)
+            elif setting_type == 'color':
+                if isinstance(widget, tk.Entry):
+                    widget.delete(0, tk.END)
+                    widget.insert(0, current_value) # type: ignore
+                    # 更新颜色显示
+                    color_frame = widget.master.winfo_children()[0]
+                    if hasattr(color_frame, 'config'):
+                        try:
+                            color_frame.config(bg=current_value) # type: ignore
+                        except:
+                            pass
     
     def refresh_all_displays(self):
         """刷新所有设置项的显示"""

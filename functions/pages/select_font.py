@@ -154,10 +154,11 @@ class FontSelectorGUI:
         self.create_button(button_frame, "选择字体文件", 
                           lambda: self.select_font_file(font_type, font_path, preview_data),
                           side=tk.LEFT, padx=(0, 10))
-        
-        self.create_button(button_frame, "重置为默认", 
-                          lambda: self.reset_font(font_type, font_path, preview_data),
-                          side=tk.LEFT)
+
+        # TODO 完成重置功能
+        # self.create_button(button_frame, "重置为默认", 
+        #                   lambda: self.reset_font(font_type, font_path, preview_data),
+        #                   side=tk.LEFT)
         
         # 初始化字体信息
         self.update_font_info(font_type, font_path, preview_data)
@@ -310,13 +311,6 @@ class FontSelectorGUI:
                 # 验证是否为有效的字体文件
                 test_font = ImageFont.truetype(file_path, 16)
                 
-                # 备份原字体（如果存在）
-                backup_path = None
-                if os.path.exists(target_path):
-                    backup_path = target_path + ".backup"
-                    shutil.copy2(target_path, backup_path)
-                    self.status_var.set(f"已备份原字体到 {backup_path}")
-                
                 # 确保目标目录存在
                 os.makedirs(os.path.dirname(target_path), exist_ok=True)
                 
@@ -331,8 +325,6 @@ class FontSelectorGUI:
                 self.update_font_info(font_type, target_path, preview_data)
                 self.status_var.set(f"✓ {font_type}字体替换成功！")
                 messagebox.showinfo("成功", 
-                                  f"{font_type}字体已成功替换！\n"
-                                  f"原字体已备份到: {backup_path}" if backup_path else 
                                   f"{font_type}字体已成功替换！")
                 
             except Exception as e:

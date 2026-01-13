@@ -428,7 +428,7 @@ def test_color_gradient_gui(root):
         root.mainloop()
         return True
     except Exception as e:
-        print(f"❌ GUI启动失败: {e}")
+        print(f"GUI启动失败: {e}")
         return False
 
 def test_color_gradient(gradient_rate: float = 2.0):
@@ -468,7 +468,7 @@ def test_color_gradient(gradient_rate: float = 2.0):
         
         # 检查是否发生了变化（除了白色文本）
         if test_case['input'] != processed:
-            print("✅ 处理成功 - 文本已被渐变处理")
+            print("处理成功 - 文本已被渐变处理")
         else:
             print("ℹ️  未处理 - 文本保持原样（可能是白色或特殊情况）")
         
@@ -487,7 +487,7 @@ def process_json_file(file_path: str, gradient_rate: float = 2.0) -> bool:
         
         # 检查数据结构
         if 'dataList' not in data or not isinstance(data['dataList'], list):
-            print(f"❌ 文件 {file_path} 格式不正确")
+            print(f"文件 {file_path} 格式不正确")
             return False
         
         processed_count = 0
@@ -507,12 +507,12 @@ def process_json_file(file_path: str, gradient_rate: float = 2.0) -> bool:
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         
-        print(f"✅ 文件 {os.path.basename(file_path)} 处理完成")
-        print(f"   处理了 {processed_count}/{total_count} 个条目")
+        print(f"文件 {os.path.basename(file_path)} 处理完成")
+        print(f"  处理了 {processed_count}/{total_count} 个条目")
         return True
         
     except Exception as e:
-        print(f"❌ 处理文件 {file_path} 时出错: {e}")
+        print(f"处理文件 {file_path} 时出错: {e}")
         return False
 
 def process_all_json_files(game_path: str, gradient_rate: float = 2.0) -> bool:
@@ -525,7 +525,7 @@ def process_all_json_files(game_path: str, gradient_rate: float = 2.0) -> bool:
     target_dir = os.path.join(game_path, 'LimbusCompany_Data', 'Lang', 'LLC_zh-CN')
     
     if not os.path.exists(target_dir):
-        print(f"❌ 目标目录不存在: {target_dir}")
+        print(f"目标目录不存在: {target_dir}")
         return False
     
     # 要处理的JSON文件列表
@@ -559,7 +559,7 @@ def process_temp_json_files(gradient_rate: float = 2.0) -> bool:
     temp_dir = os.path.abspath(temp_dir)
     
     if not os.path.exists(temp_dir):
-        print(f"❌ temp目录不存在: {temp_dir}")
+        print(f"temp目录不存在: {temp_dir}")
         return False
     
     # 要处理的JSON文件列表
@@ -593,7 +593,7 @@ def main():
     try:
         
         if not game_path:
-            print("❌ 未配置游戏路径")
+            print("未配置游戏路径")
             return False
         if not gradient_rate:
             gradient_rate = 0.5
@@ -601,7 +601,7 @@ def main():
         return process_all_json_files(game_path, gradient_rate) # type: ignore
     
     except Exception as e:
-        print(f"❌ 读取配置文件失败: {e}")
+        print(f"读取配置文件失败: {e}")
         return False
 
 def maint():
@@ -623,7 +623,7 @@ def maint():
             main()
             
         except Exception as e:
-            print(f"❌ 读取配置文件失败: {e}")
+            print(f"读取配置文件失败: {e}")
             return False
     
     elif choice == "2":
@@ -640,12 +640,12 @@ def maint():
         # return test_color_gradient_gui()
     
     else:
-        print("❌ 无效选择")
+        print("无效选择")
         return False
 
 if __name__ == "__main__":
     success = maint()
     if success:
-        print("\n✅ 操作成功完成!")
+        print("\n 操作成功完成!")
     else:
-        print("\n❌ 操作失败!")
+        print("\n 操作失败!")

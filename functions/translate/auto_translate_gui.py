@@ -16,6 +16,12 @@ class AutoTranslateGUI:
         self.source_path = source_path
         self.target_path = target_path
 
+        self.dict_path = {
+            "全部": [source_path, target_path],
+            "仅主线剧情": [source_path + "/StoryData", target_path + "/StoryData"],
+            "仅人格技能": [source_path, target_path],
+        }
+
         center_window(self.root)
         
         # 设置颜色主题
@@ -112,7 +118,7 @@ class AutoTranslateGUI:
         title_label.pack(side=tk.LEFT)
         
         # 副标题
-        subtitle_label = ttk.Label(title_frame, text="JSON文件自动汉化工具", style='Subtitle.TLabel')
+        subtitle_label = ttk.Label(title_frame, text="自动汉化工具", style='Subtitle.TLabel')
         subtitle_label.pack(side=tk.LEFT, padx=(10, 0))
         
         # 路径信息显示
@@ -121,17 +127,23 @@ class AutoTranslateGUI:
         
         # 黑名单设置区域
         blacklist_frame = ttk.Frame(main_frame, style='Light.TFrame', padding="15")
-        blacklist_frame.pack(fill=tk.X, pady=(0, 20))
+        blacklist_frame.pack(fill=tk.X, pady=(0, 5))
         
         ttk.Label(blacklist_frame, text="黑名单文件配置", style='Dark.TLabel', 
-                 font=('Microsoft YaHei UI', 12, 'bold')).pack(anchor=tk.W, pady=(0, 10))
+                 font=('Microsoft YaHei UI', 12, 'bold')).pack(anchor=tk.W, pady=(0, 5))
         
         ttk.Label(blacklist_frame, text="每行一个文件名 (以#开头的行会被忽略):", 
                  style='Subtitle.TLabel').pack(anchor=tk.W)
         
+        # 翻译模式选择
+        self.mode_combo_box = ttk.Combobox(blacklist_frame, values=["仅主线剧情"],
+                                      state="readonly", style='Secondary.TButton')
+        self.mode_combo_box.current(0)
+        self.mode_combo_box.pack(fill=tk.X, pady=5)
+        
         # 创建带样式的文本框
         text_frame = ttk.Frame(blacklist_frame, style='Light.TFrame')
-        text_frame.pack(fill=tk.X, pady=10)
+        text_frame.pack(fill=tk.X, pady=3)
         
         self.blacklist_text = tk.Text(text_frame, height=4, bg=self.lighten_bg_color, 
                                      fg=self.text_color, insertbackground=self.text_color,
@@ -151,7 +163,6 @@ class AutoTranslateGUI:
         # 添加示例黑名单
         example_blacklist = """ProjectGSLessonName.json
 P10705.json
-ScenarioModelCodes-AutoCreated.json
 BattleSpeechBubbleDlg.json
 BattleSpeechBubbleDlg_Cultivation.json
 BattleSpeechBubbleDlg_mowe.json
@@ -164,12 +175,12 @@ EGOgift.json
         progress_frame.pack(fill=tk.X, pady=(0, 5))
         
         ttk.Label(progress_frame, text="翻译进度", style='Dark.TLabel',
-                 font=('Microsoft YaHei UI', 12, 'bold')).pack(anchor=tk.W, pady=(0, 10))
+                 font=('Microsoft YaHei UI', 12, 'bold')).pack(anchor=tk.W, pady=(0, 5))
         
         self.progress_var = tk.StringVar(value="准备开始翻译任务")
         self.progress_label = ttk.Label(progress_frame, textvariable=self.progress_var, 
                                       style='Subtitle.TLabel')
-        self.progress_label.pack(anchor=tk.W, pady=(0, 10))
+        self.progress_label.pack(anchor=tk.W, pady=(0, 5))
         
         self.progress_bar = ttk.Progressbar(progress_frame, mode='determinate',
                                           style='Custom.Horizontal.TProgressbar')
@@ -267,17 +278,12 @@ EGOgift.json
             status_text += f" ({current}/{total})"
         
         self.progress_var.set(status_text)
-        self.log_message(message)
         self.root.update_idletasks()
     
     def start_translation(self):
         """开始翻译"""
         if not self.source_path or not self.target_path:
             messagebox.showerror("错误", "请设置源路径和目标路径")
-            return
-        
-        if not Path(self.source_path).exists():
-            messagebox.showerror("错误", "源路径不存在")
             return
         
         self.is_running = True
@@ -290,32 +296,41 @@ EGOgift.json
         thread = threading.Thread(target=self.run_translation)
         thread.daemon = True
         thread.start()
+
+    def get_translation_mode(self):
+        """获取翻译模式"""
+        mode = self.mode_combo_box.get()
+        return mode
     
     def run_translation(self):
         """运行翻译任务"""
         try:
             blacklist_files = self.get_blacklist_files()
+            is_skill = False
             
             def progress_callback(current, total, message):
                 if self.is_running:
                     self.root.after(0, lambda: self.update_progress(current, total, message))
-            
+
+            mode = self.get_translation_mode()
+            if mode in ["仅主线剧情", "全部"]:
+                self.source_path, self.target_path = self.dict_path[mode]
+            else:
+                # Skills_personality-0*.json (12个)
+                self.source_path, self.target_path = self.dict_path[mode]
+                is_skill = True
+
             self.log_message("🎯 开始翻译任务...")
             self.log_message(f"📁 源路径: {self.source_path}")
             self.log_message(f"📂 目标路径: {self.target_path}")
             if blacklist_files:
                 self.log_message(f"🚫 黑名单文件: {blacklist_files}")
             
-            success = auto_translate(self.source_path, self.target_path, blacklist_files, progress_callback)
+            success = auto_translate(self, self.source_path, self.target_path, blacklist_files, progress_callback, is_skill)
             
-            if success and self.is_running:
-                self.log_message("✅ 翻译任务完成!")
+            if self.is_running:
+                self.log_message("翻译任务完成!")
                 messagebox.showinfo("完成", "翻译任务已完成!")
-            elif not self.is_running:
-                self.log_message("⏹️ 翻译任务被用户取消")
-            else:
-                self.log_message("❌ 翻译任务失败")
-                messagebox.showerror("错误", "翻译任务失败，请查看日志")
         
         except Exception as e:
             self.log_message(f"💥 翻译任务异常: {e}")

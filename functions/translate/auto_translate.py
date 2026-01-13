@@ -1,295 +1,208 @@
 import os
 import json
-from pathlib import Path
-from functions.translate.translate_ulits import translate_text
-from time import sleep
-import re
+import concurrent.futures
+from functions.translate.ai_translate import AITranslator
 
-class AutoTranslate:
-    def __init__(self, source_path, target_path, blacklist_files=None):
-        self.source_path = Path(source_path)
-        self.target_path = Path(target_path)
-        # 这些字段翻译
-        self.excluded_keys = {'content','teller','dlg','desc', 'dialog', 'abName', 'name'}
-        self.blacklist_files = set(blacklist_files) if blacklist_files else set()
-        self.translation_errors = []
-    
-    def _load_json_file(self, file_path):
-        try:
-            # 先尝试使用utf-8-sig解码BOM文件
-            with open(file_path, 'r', encoding='utf-8-sig') as f:
-                return json.load(f)
-        except UnicodeDecodeError:
-            # 如果utf-8-sig失败，尝试普通utf-8
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"加载JSON文件失败 {file_path}: {e}")
-                return None
-        except Exception as e:
-            print(f"加载JSON文件失败 {file_path}: {e}")
-            return None
-    
-    def _save_json_file(self, file_path, data):
-        try:
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            with open(file_path, 'w', encoding='utf-8', newline='\n') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception as e:
-            print(f"保存JSON文件失败 {file_path}: {e}")
-            return False
-    
-    def _should_translate_value(self, key, value):
-        """检查字段是否需要翻译"""
-        if key not in self.excluded_keys:
-            return False
-        
-        if not isinstance(value, str):
-            return False
-        
-        if not value.strip():
-            return False
-        
-        # 检查是否已经是中文
-        if self._is_chinese(value):
-            return False
-        
-        return True
-    
-    def _is_chinese(self, text):
-        """检查文本是否已经是中文"""
-        chinese_pattern = re.compile(r'[\u4e00-\u9fff]+')
-        return bool(chinese_pattern.search(text))
-    
-    def _find_item_by_id(self, data_list, item_id):
-        """根据id在dataList中查找项目"""
-        for item in data_list:
-            if item.get('id') == item_id:
-                return item
-        return None
-    
-    def _get_missing_items(self, source_items, target_items):
-        """获取源文件中存在但目标文件中缺失的项目"""
-        source_ids = {item.get('id') for item in source_items if item.get('id') is not None}
-        target_ids = {item.get('id') for item in target_items if item.get('id') is not None}
-        
-        missing_ids = source_ids - target_ids
-        missing_items = []
-        
-        for item in source_items:
-            if item.get('id') in missing_ids:
-                missing_items.append(item)
-        
-        return missing_items
-    
-    def _translate_item_fields(self, source_item, target_item):
-        """翻译项目中的字段，只翻译需要翻译的字段"""
-        translated_item = target_item.copy() if target_item else {}
-        
-        # 确保所有源项目的字段都被保留
-        for key, value in source_item.items():
-            if key not in translated_item:
-                translated_item[key] = value
-        
-        # 只翻译需要翻译的字段
-        for key, value in source_item.items():
-            # 如果字段不在需要翻译的列表中，跳过翻译
-            if key not in self.excluded_keys:
-                continue
+import unicodedata
 
-            if '??' in translated_item[key]:
-                continue
-                
-            # 检查是否需要翻译
-            if self._should_translate_value(key, value):
-                # 对于缺失的项目（target_item为None），直接进行翻译
-                # 对于已存在的项目，如果目标项中已经存在该字段且是中文，跳过翻译
-                if target_item is not None and key in translated_item:
-                    # 检查目标字段是否已经是中文，如果是则跳过翻译
-                    if self._is_chinese(translated_item[key]):
-                        continue
-                
-                # 进行翻译
-                try:
-                    translated_value = translate_text(value, translation_type='auto_to_zh')
-                    if "翻译失败" not in translated_value:
-                        translated_item[key] = translated_value
-                        print(f"✅ 翻译成功: {key} = {translated_value}")
-                    else:
-                        # 翻译失败，保留原值
-                        translated_item[key] = value
-                        self.translation_errors.append(f"翻译失败: {key} = {value}")
-                        print(f"❌ 翻译失败: {key} = {value}")
-                except Exception as e:
-                    print(f"💥 翻译异常: {key} = {value}, 错误: {e}")
-                    translated_item[key] = value
-                    self.translation_errors.append(f"翻译异常: {key} = {value}")
-                
-                sleep(0.3)  # 增加延迟避免频率限制
-        
-        return translated_item
+def is_all_punctuation(sentence):
+    """检测句子是否完全由标点符号组成（允许包含空白字符）"""
+    if not sentence:
+        return False
     
-    def _process_json_file(self, source_file, target_file):
-        """处理单个JSON文件"""
-        source_data = self._load_json_file(source_file)
-        if not source_data:
-            return False, 0
-        
-        # 如果目标文件不存在，创建空的目标数据结构
-        if not target_file.exists():
-            target_data = {'dataList': []}
-        else:
-            target_data = self._load_json_file(target_file)
-            if not target_data:
-                target_data = {'dataList': []}
-            elif 'dataList' not in target_data:
-                target_data['dataList'] = []
-        
-        source_items = source_data.get('dataList', [])
-        target_items = target_data.get('dataList', [])
-        
-        # 获取缺失的项目
-        missing_items = self._get_missing_items(source_items, target_items)
-        translated_count = 0
-        
-        # 处理缺失的项目
-        for source_item in missing_items:
-            item_id = source_item.get('id')
-            if not item_id:
-                continue
-            
-            print(f"🔍 发现缺失项目: ID={item_id}")
-            translated_item = self._translate_item_fields(source_item, None)
-            target_items.append(translated_item)
-            translated_count += 1
-        
-        # 更新已存在的项目（只翻译需要翻译的字段）
-        for target_item in target_items:
-            item_id = target_item.get('id')
-            if not item_id:
-                continue
-            
-            source_item = self._find_item_by_id(source_items, item_id)
-            if source_item:
-                # 只更新需要翻译的字段
-                updated_item = self._translate_item_fields(source_item, target_item)
-                target_items[target_items.index(target_item)] = updated_item
-        
-        target_data['dataList'] = target_items
-        success = self._save_json_file(target_file, target_data)
-        return success, translated_count
-    
-    def _get_target_filename(self, source_filename):
-        """将源文件名 EN_xxx.json 转换为目标文件名 xxx.json"""
-        if source_filename.startswith('EN_') and source_filename.endswith('.json'):
-            return source_filename[3:]  # 移除 EN_ 前缀
-        return source_filename
-    
-    def _is_blacklisted(self, filename):
-        """检查文件是否在黑名单中"""
-        target_filename = self._get_target_filename(filename)
-        return target_filename in self.blacklist_files
-    
-    def _copy_directory_structure(self):
-        """只创建目录结构，不复制文件内容"""
-        for root, dirs, files in os.walk(self.source_path):
-            relative_path = os.path.relpath(root, self.source_path)
-            target_dir = self.target_path / relative_path
-            
-            if relative_path != '.':
-                os.makedirs(target_dir, exist_ok=True)
-    
-    def run(self, progress_callback=None):
-        """运行翻译任务"""
-        print(f"🚀 开始自动翻译: {self.source_path} -> {self.target_path}")
-        print(f"📋 排除字段: {self.excluded_keys}")
-        print(f"📁 文件名转换规则: EN_xxx.json -> xxx.json")
-        if self.blacklist_files:
-            print(f"🚫 黑名单文件: {self.blacklist_files}")
-        
-        if not self.source_path.exists():
-            print(f"❌ 源路径不存在: {self.source_path}")
+    for char in sentence:
+        # 跳过空白字符
+        if char.isspace():
+            continue
+        # 检查字符是否为标点符号（Unicode 类别以 'P' 开头）
+        if not unicodedata.category(char).startswith('P'):
             return False
-        
-        # 只创建目录结构，不复制文件内容
-        self._copy_directory_structure()
-        
-        # 获取所有JSON文件
+    return True
+
+class AutoTranslator:
+    def __init__(self, window):
+        self.window = window
+        self.translator = AITranslator()
+        self.target_keys = {'content', 'teller', 'dlg', 'desc', 'dialog', 'abName', 'name', 'place'}
+        self.is_running = True
+    
+    def set_running_state(self, state):
+        """设置运行状态"""
+        self.is_running = state
+    
+    def _get_json_files(self, source_path):
+        """获取源路径下的所有 json 文件"""
         json_files = []
-        for root, dirs, files in os.walk(self.source_path):
+        for root, dirs, files in os.walk(source_path):
             for file in files:
                 if file.endswith('.json'):
-                    json_files.append(Path(root) / file)
+                    json_files.append(os.path.join(root, file))
+        return json_files
+    
+    def _translate_value(self, value):
+        """翻译单个值"""
+        if not value or not isinstance(value, str):
+            return value
         
-        total_files = len(json_files)
-        processed_files = 0
-        total_translated = 0
+        if is_all_punctuation(value):
+            self.window.log_message(f"⏩ 跳过纯标点符号的值: {value}")
+            return value
         
-        for source_file in json_files:
-            relative_path = source_file.relative_to(self.source_path)
-            filename = source_file.name
-            
-            # 检查是否在黑名单中
-            if self._is_blacklisted(filename):
-                print(f"⏭️ 跳过黑名单文件: {relative_path}")
-                processed_files += 1
-                if progress_callback:
-                    progress_callback(processed_files, total_files, f"跳过黑名单文件: {relative_path}")
-                continue
-            
-            # 转换文件名
-            target_filename = self._get_target_filename(filename)
-            target_relative_path = Path(relative_path).parent / target_filename
-            target_file = self.target_path / target_relative_path
-            
-            print(f"\n📄 处理文件: {relative_path} -> {target_relative_path}")
-            
-            if progress_callback:
-                progress_callback(processed_files, total_files, f"处理文件: {target_relative_path}")
-            
-            result = self._process_json_file(source_file, target_file)
-            if isinstance(result, tuple) and len(result) == 2:
-                success, translated_count = result
-                if success:
-                    processed_files += 1
-                    total_translated += translated_count
-                    status = "✅ 完成处理" if translated_count == 0 else f"✅ 完成处理 (新增 {translated_count} 条翻译)"
-                    print(f"{status}: {target_relative_path}")
-                else:
-                    print(f"❌ 处理失败: {target_relative_path}")
+        try:
+            result = self.translator.translate(value)
+            if result['status'] == 0:
+                text:str = result['data']['info']['text']
+                text = text.replace('“','').replace('”','')
+
+                self.window.log_message(f" 翻译成功: {value} -> {text}")
+                return text
             else:
-                print(f"❌ 处理失败: {target_relative_path} (返回类型错误)")
+                self.window.log_message(f"⚠️ 翻译失败: {result}")
+                return value
+        except Exception as e:
+            self.window.log_message(f"⚠️ 翻译异常: {e}")
+            return value
+    
+    def _process_file(self, source_file, target_file, is_skill=False):
+        """处理单个 json 文件"""
+        if not self.is_running:
+            return False
+        
+        try:
+            # 读取源文件
+            with open(source_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
             
-            if progress_callback:
-                progress_callback(processed_files, total_files, f"完成: {target_relative_path}")
-        
-        print(f"\n🎉 翻译完成!")
-        print(f"📊 总处理文件数: {processed_files}")
-        print(f"📈 总新增翻译条目: {total_translated}")
-        
-        if self.translation_errors:
-            print(f"\n⚠️ 翻译错误列表 ({len(self.translation_errors)} 个错误):")
-            for error in self.translation_errors[:10]:  # 只显示前10个错误
-                print(f"  - {error}")
-            if len(self.translation_errors) > 10:
-                print(f"  ... 还有 {len(self.translation_errors) - 10} 个错误")
-        
-        return True
-
-def auto_translate(source_path, target_path, blacklist_files=None, progress_callback=None):
-    translator = AutoTranslate(source_path, target_path, blacklist_files)
-    return translator.run(progress_callback)
-
-if __name__ == "__main__":
-    # 示例黑名单文件
-    blacklist_files = [
-        "ProjectGSLessonName.json",  # 示例黑名单文件
-        "SomeOtherFile.json"         # 另一个示例
-    ]
+            # 翻译文件
+            if is_skill:
+                # 处理技能文件
+                if isinstance(data, list):
+                    for item in data:
+                        if not self.is_running:
+                            return False
+                        if isinstance(item, dict):
+                            for key in item:
+                                if key in self.target_keys:
+                                    item[key] = self._translate_value(item[key])
+            else:
+                # 处理普通文件
+                if isinstance(data, dict):
+                    for key in data:
+                        if not self.is_running:
+                            return False
+                        if key in self.target_keys:
+                            data[key] = self._translate_value(data[key])
+                        elif isinstance(data[key], dict):
+                            # 递归处理嵌套字典
+                            for sub_key in data[key]:
+                                if not self.is_running:
+                                    return False
+                                if sub_key in self.target_keys:
+                                    data[key][sub_key] = self._translate_value(data[key][sub_key])
+                        elif isinstance(data[key], list):
+                            # 处理列表
+                            for i, item in enumerate(data[key]):
+                                if not self.is_running:
+                                    return False
+                                if isinstance(item, dict):
+                                    for sub_key in item:
+                                        if not self.is_running:
+                                            return False
+                                        if sub_key in self.target_keys:
+                                            item[sub_key] = self._translate_value(item[sub_key])
+            
+            # 保存目标文件
+            with open(target_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            return True
+        except Exception as e:
+            self.window.log_message(f"❌ 处理文件失败 {source_file}: {e}")
+            return False
     
-    source_path = "D:\\steam\\steamapps\\common\\Limbus Company\\LimbusCompany_Data\\Assets\\Resources_moved\\Localize\\en"
-    target_path = "E:/projects/python/FaustLauncher/workshop/LLC_zh-CN"
-    
-    auto_translate(source_path, target_path, blacklist_files)
+    def translate(self, source_path, target_path, blacklist_files=None, progress_callback=None, is_skill=False):
+        """主方法，用于启动翻译任务"""
+        if blacklist_files is None:
+            blacklist_files = []
+        
+        self.is_running = True
+        
+        # 获取源路径下的所有 json 文件
+        source_files = self._get_json_files(source_path)
+        total_files = len(source_files)
+        
+        if total_files == 0:
+            self.window.log_message(f"⚠️ 在源路径 {source_path} 下没有找到 json 文件")
+            return False
+        
+        self.window.log_message(f"📁 找到 {total_files} 个 json 文件")
+        
+        # 过滤掉黑名单文件
+        filtered_files = []
+        for file in source_files:
+            filename = os.path.basename(file)
+            if filename not in blacklist_files:
+                filtered_files.append(file)
+        
+        if filtered_files != source_files:
+            self.window.log_message(f"🚫 跳过了 {total_files - len(filtered_files)} 个黑名单文件")
+        
+        total_files = len(filtered_files)
+        processed_files = 0
+        success_files = 0
+        
+        # 确保目标路径存在
+        os.makedirs(target_path, exist_ok=True)
+        
+        # 使用线程池处理文件
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            # 提交所有任务
+            futures = []
+            filtered_files.reverse()
+
+            for source_file in filtered_files:
+                # 构建目标文件路径
+                target_file = os.path.join(target_path, os.path.basename(str(source_file).replace("EN_", '')))
+                file_name = os.path.basename(target_file)
+
+                if os.path.exists(target_file):
+                    self.window.log_message(f"⚠️ 目标文件已存在，跳过: {file_name}")
+                    processed_files += 1
+                    if progress_callback:
+                        progress_callback(processed_files, total_files, f"已处理 {processed_files}/{total_files} 个文件")
+                    continue
+
+                self.window.log_message(f"🔄 开始处理文件: {file_name}")
+                
+                # 确保目标文件的父目录存在
+                os.makedirs(os.path.dirname(target_file), exist_ok=True)
+                
+                # 提交任务
+                futures.append(executor.submit(self._process_file, source_file, target_file, is_skill))
+            
+            # 处理任务结果
+            for future in concurrent.futures.as_completed(futures):
+                if not self.is_running:
+                    break
+                
+                processed_files += 1
+                
+                if future.result():
+                    success_files += 1
+                
+                # 更新进度
+                if progress_callback:
+                    progress_callback(processed_files, total_files, f"已处理 {processed_files}/{total_files} 个文件")
+        
+        if self.is_running:
+            self.window.log_message(f" 翻译完成，成功处理 {success_files}/{total_files} 个文件")
+            return True
+        else:
+            self.window.log_message(f"⏹️ 翻译任务被取消，已处理 {processed_files}/{total_files} 个文件")
+            return False
+
+def auto_translate(window, source_path, target_path, blacklist_files=None, progress_callback=None, is_skill=False):
+    """入口函数，用于调用 AutoTranslator 类"""
+    # 创建一个临时的窗口对象，用于输出日志
+    translator = AutoTranslator(window)
+    translator.translate(source_path, target_path, blacklist_files, progress_callback, is_skill)

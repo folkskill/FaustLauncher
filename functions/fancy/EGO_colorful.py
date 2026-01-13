@@ -29,9 +29,9 @@ def process_ego_json_files():
         print(f"正在处理: {json_file}")
         success = process_single_json_file(json_file)
         if success:
-            print(f"✅ {json_file} 处理完成")
+            print(f"{json_file} 处理完成")
         else:
-            print(f"❌ {json_file} 处理失败")
+            print(f"{json_file} 处理失败")
     
     return True
 
@@ -103,8 +103,8 @@ def process_text_field(text: str, is_specified: bool) -> str:
     else:
         # 不包含"指定"的情况：白色向亮灰色渐变
         # 亮灰色：#d3d3d3
-        processed_text = apply_color_gradient_custom(text, "#ffffff", "#d3d3d3", 0.3)
-        processed_text = f"<b>{processed_text}</b>"
+        processed_text = text
+        processed_text = f"<b><i>{processed_text}</i></b>"
     
     return processed_text
 
@@ -117,14 +117,14 @@ def main():
     try:
         success = process_ego_json_files()
         if success:
-            print("✅ 所有JSON文件处理完成")
+            print("所有JSON文件处理完成")
         else:
-            print("❌ 处理过程中出现错误")
+            print("处理过程中出现错误")
         
         return success
         
     except Exception as e:
-        print(f"❌ 处理失败: {e}")
+        print(f"处理失败: {e}")
         return False
 
 if __name__ == "__main__":

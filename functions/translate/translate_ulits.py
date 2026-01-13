@@ -1,189 +1,144 @@
-import requests
-import json
-import time
-import hashlib
-import uuid
+# -*- coding: utf-8 -*-
 
-class YoudaoTranslator:
-    """有道翻译API封装类"""
+import requests
+import random
+import json
+from hashlib import md5
+import urllib.parse
+import time
+
+class BaiduTranslatorFixed:
+    """修正版的百度翻译API实现"""
     
-    def __init__(self, app_key=None, app_secret=None):
-        """
-        初始化有道翻译API
-        Args:
-            app_key: 有道翻译API的应用ID
-            app_secret: 有道翻译API的应用密钥
-        """
-        self.app_key = app_key or '1736249955e2ddc2'
-        self.app_secret = app_secret or 'kwl2GRgG3LAXM2aEfZGFYOaozNOX6Lzg'
-        self.base_url = 'https://openapi.youdao.com/api'
-        
-    def generate_sign_v3(self, text, salt, curtime):
-        """生成v3签名"""
-        if len(text) <= 20:
-            input_str = text
-        else:
-            input_str = text[:10] + str(len(text)) + text[-10:]
-        
-        sign_str = self.app_key + input_str + str(salt) + str(curtime) + self.app_secret
-        return hashlib.sha256(sign_str.encode('utf-8')).hexdigest()
+    def __init__(self, appid: str, appkey: str):
+        self.appid = appid
+        self.appkey = appkey
+        self.endpoint = 'http://api.fanyi.baidu.com'
+        self.path = '/api/trans/vip/translate'
+        self.url = self.endpoint + self.path
     
-    def detect_language(self, text):
-        """检测文本语言"""
-        if any('\u4e00' <= char <= '\u9fff' for char in text):
-            return 'zh-CHS'
-        elif any(char.isalpha() for char in text):
-            return 'en'
-        else:
-            return 'auto'
+    def _make_md5(self, s, encoding='utf-8'):
+        """MD5加密函数"""
+        return md5(s.encode(encoding)).hexdigest()
     
-    def translate(self, text, translation_type='auto_to_zh'):
-        """
-        使用有道翻译API进行翻译
-        Args:
-            text: 原始文本
-            translation_type: 翻译类型，支持：
-                'auto_to_zh' - 自动检测到中文
-                'zh_to_en'   - 中文到英文
-                'en_to_zh'   - 英文到中文
-        Returns:
-            翻译后的文本
-        """
-        if not text or not text.strip():
-            return "请输入有效的文本"
-        
-        # 根据翻译类型设置语言方向
-        translation_types = {
-            'auto_to_zh': ('auto', 'zh-CHS'),
-            'zh_to_en': ('zh-CHS', 'en'),
-            'en_to_zh': ('en', 'zh-CHS')
-        }
-        
-        if translation_type not in translation_types:
-            return f"不支持的翻译类型: {translation_type}"
-        
-        from_lang, to_lang = translation_types[translation_type]
+    def _validate_query(self, query: str) -> bool:
+        """验证查询文本"""
+        if not query or not query.strip():
+            return False
+        # 百度翻译对文本长度有限制
+        if len(query) > 6000:
+            return False
+        return True
+    
+    def translate(self, query: str, from_lang: str = 'en', to_lang: str = 'zh'):
+        """翻译文本"""
+        if not self._validate_query(query):
+            return {"error": "查询文本无效", "error_code": "54000"}
         
         try:
-            # 自动检测语言
-            if from_lang == 'auto':
-                detected_lang = self.detect_language(text)
-                from_lang = detected_lang if detected_lang != 'auto' else 'en'
+            # 生成随机盐值
+            salt = random.randint(32768, 65536)
             
-            # 如果源语言和目标语言相同，直接返回原文
-            if from_lang == to_lang:
-                return text
+            # 关键修正：确保签名字符串的顺序和编码正确
+            # 百度官方文档要求：appid+q+salt+密钥
+            sign_str = self.appid + query + str(salt) + self.appkey
+            sign = self._make_md5(sign_str)
             
-            # 生成随机数和当前时间戳
-            salt = str(uuid.uuid4())
-            curtime = str(int(time.time()))
-            
-            # 生成签名
-            sign = self.generate_sign_v3(text, salt, curtime)
-            
-            # 准备请求参数
-            params = {
-                'q': text,
+            # 构建请求参数
+            headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+            payload = {
+                'appid': self.appid,
+                'q': query,
                 'from': from_lang,
                 'to': to_lang,
-                'appKey': self.app_key,
                 'salt': salt,
-                'sign': sign,
-                'signType': 'v3',
-                'curtime': curtime
-            }
-            
-            headers = {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                'sign': sign
             }
             
             # 发送请求
-            response = requests.post(self.base_url, data=params, headers=headers, timeout=10)
+            response = requests.post(self.url, data=payload, headers=headers, timeout=30)
             
-            # 检查响应状态
-            if response.status_code != 200:
-                return f"请求失败，状态码: {response.status_code}"
-            
-            # 解析响应
-            result = response.json()
-            
-            # 检查错误码
-            error_code = result.get('errorCode', '0')
-            if error_code != '0':
-                error_msg = self.get_error_message(error_code)
-                return f"翻译失败: {error_msg}"
-            
-            # 提取翻译结果
-            if 'translation' in result and result['translation']:
-                return result['translation'][0]
+            if response.status_code == 200:
+                result = response.json()
+                return result
             else:
-                return "翻译结果为空"
+                return {
+                    "error": f"HTTP错误: {response.status_code}",
+                    "error_code": "52002"
+                }
                 
-        except requests.exceptions.Timeout:
-            return "请求超时，请检查网络连接"
-        except requests.exceptions.ConnectionError:
-            return "网络连接错误，请检查网络设置"
-        except json.JSONDecodeError:
-            return "API返回的数据格式错误"
+        except requests.exceptions.RequestException as e:
+            return {"error": f"网络请求异常: {str(e)}", "error_code": "52001"}
         except Exception as e:
-            return f"翻译过程中出现未知错误: {str(e)}"
+            return {"error": f"翻译异常: {str(e)}", "error_code": "52002"}
+
+# 使用示例
+def test_fixed_translator():
+    """测试修正版的翻译器"""
+    # 您的配置信息
+    appid = "20251225002527257"
+    appkey = "1p0t_d5h2m9ocguqhr0nm6e2g"
     
-    def get_error_message(self, error_code):
-        """获取错误码对应的错误信息"""
-        error_messages = {
-            '101': '缺少必填参数',
-            '102': '不支持的语言类型',
-            '103': '翻译文本过长',
-            '104': '不支持的API类型',
-            '105': '不支持的签名类型',
-            '106': '不支持的响应类型',
-            '107': '不支持的加密类型',
-            '108': '应用ID无效',
-            '109': '批量日志无效',
-            '110': '无服务可用',
-            '111': '开发者账号无效',
-            '112': '请求服务无效',
-            '113': '查询为空',
-            '114': '签名验证失败',
-            '116': 'q参数为空',
-            '201': '解密失败，检查加密方式',
-            '202': '签名验证失败',
-            '203': '访问IP不在白名单中',
-            '205': '应用不存在',
-            '206': '应用未激活',
-            '301': '词典查询失败',
-            '302': '翻译查询失败',
-            '303': '服务连接异常',
-            '304': '服务查询失败',
-            '401': '账户余额不足',
-            '411': '访问频率受限',
-            '412': '长请求过于频繁'
-        }
-        return error_messages.get(error_code, f'未知错误: {error_code}')
+    translator = BaiduTranslatorFixed(appid, appkey)
+    
+    # 测试不同的文本
+    test_queries = [
+        "Hello World",
+        "你好",
+        "test",
+        "apple"
+    ]
+    
+    for query in test_queries:
+        print(f"\n测试翻译: '{query}'")
+        result = translator.translate(query, 'en', 'zh')
+        
+        if 'error_code' in result:
+            error_code = result['error_code']
+            error_msg = result.get('error', '未知错误')
+            print(f"翻译失败 - 错误码: {error_code}, 错误信息: {error_msg}")
+            
+            # 根据错误码提供具体建议
+            if error_code == '54001':
+                print("💡 签名错误建议:")
+                print("1. 检查API密钥是否正确")
+                print("2. 检查签名生成顺序: appid + q + salt + appkey")
+                print("3. 确保文本编码为UTF-8")
+                print("4. 尝试重新生成API密钥")
+        else:
+            print(f"翻译成功: {result}")
+        
+        # 避免频率限制
+        time.sleep(1)
 
-def translate_text(text, translation_type='auto_to_zh'):
-    """
-    翻译函数 - 主接口
-    Args:
-        text: 原始文本
-        translation_type: 翻译类型
-            'auto_to_zh' - 自动检测到中文 (默认)
-            'zh_to_en'   - 中文到英文
-            'en_to_zh'   - 英文到中文
-    Returns:
-        翻译后的文本
-    """
-    translator = YoudaoTranslator()
-    return translator.translate(text, translation_type)
-
-# 保留测试用的主函数（可选）
-def main():
-    """测试函数"""
-    # 测试示例
-    test_text = "Hello world"
-    result = translate_text(test_text, 'auto_to_zh')
-    print(f"测试翻译: {test_text} -> {result}")
+# 详细的调试函数
+def debug_signature():
+    """调试签名生成过程"""
+    appid = "20251225002527257"
+    appkey = "1p0t_d5h2m9ocguqhr0nm6e2g"
+    query = "Hello World"
+    salt = random.randint(32768, 65536)
+    
+    print("=== 签名调试信息 ===")
+    print(f"AppID: {appid}")
+    print(f"AppKey: {appkey}")
+    print(f"Query: {query}")
+    print(f"Salt: {salt}")
+    
+    # 生成签名
+    sign_str = appid + query + str(salt) + appkey
+    sign = md5(sign_str.encode('utf-8')).hexdigest()
+    
+    print(f"签名字符串: {sign_str}")
+    print(f"MD5签名: {sign}")
+    print(f"签名长度: {len(sign)}")
+    print("===================")
 
 if __name__ == "__main__":
-    main()
+    print("开始测试百度翻译API...")
+    
+    # 先调试签名
+    debug_signature()
+    
+    # 测试翻译
+    test_fixed_translator()

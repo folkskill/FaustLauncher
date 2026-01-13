@@ -4,42 +4,40 @@
         "type": "string",
         "default": "",
         "value": "D:/steam/steamapps/common/Limbus Company/",
-        "description": "游戏安装路径, 请确保路径正确\n否则可能导致启动失败和其他错误问题"
+        "description": "游戏安装路径, 请确保路径正确\n否则可能导致启动失败和其他错误问题",
+        "page": "通用"
     },
     "user_name": {
         "name": "用户名",
         "type": "string",
         "default": "Player",
         "value": "folkskill",
-        "description": "你的用户名，将显示在边狱巴士的个人车票上"
+        "description": "你的用户名，将显示在边狱巴士的个人车票上",
+        "page": "美化"
     },
     "enable_show_user_name": {
         "name": "显示用户名",
         "type": "boolean",
         "default": true,
         "value": true,
-        "description": "是否显示用户名在边狱巴士的个人车票上"
-    },
-    "enable_mods": {
-        "name": "启用Mod功能",
-        "type": "boolean",
-        "default": true,
-        "value": true,
-        "description": "是否加载 Mod"
-    },
-    "hide_mod_load": {
-        "name": "隐藏Mod加载窗口",
-        "type": "boolean",
-        "default": false,
-        "value": false,
-        "description": "启动游戏时是否隐藏 Mod 加载窗口"
+        "description": "是否显示用户名在边狱巴士的个人车票上",
+        "page": "美化"
     },
     "enable_ego_style": {
         "name": "启用EGO样式美化",
         "type": "boolean",
         "default": true,
         "value": true,
-        "description": "是否对EGO名称应用颜色渐变和样式美化\n若启用, 除了正常EGO名称美化\n以及侵蚀的EGO名称将有特殊样式"
+        "description": "是否对EGO名称应用颜色渐变和样式美化\n若启用, 除了正常EGO名称美化\n以及侵蚀的EGO名称将有特殊样式",
+        "page": "美化"
+    },
+    "enable_text_gradient": {
+        "name": "启用气泡文本渐变色美化",
+        "type": "boolean",
+        "default": true,
+        "value": true,
+        "description": "是否对气泡文本应用颜色渐变",
+        "page": "美化"
     },
     "bubble_text_gradient_rate": {
         "name": "气泡文本渐变系数",
@@ -49,14 +47,48 @@
         "description": "气泡文本渐变系数\n越大的值意味着颜色渐变越快",
         "min": 0.1,
         "max": 5.0,
-        "step": 0.1
+        "step": 0.1,
+        "page": "美化"
     },
     "bg_color": {
         "name": "背景颜色",
-        "type": "string",
+        "type": "color",
         "default": "#181818",
         "value": "#181818",
-        "description": "应用程序的背景颜色 (十六进制格式)\n重启后才能生效"
+        "description": "应用程序的背景颜色 (十六进制格式)\n重启后才能生效",
+        "page": "美化"
+    },
+    "enable_mods": {
+        "name": "启用Mod功能",
+        "type": "boolean",
+        "default": true,
+        "value": true,
+        "description": "是否加载 Mod",
+        "page": "Mod"
+    },
+    "hide_mod_load": {
+        "name": "隐藏Mod加载窗口",
+        "type": "boolean",
+        "default": false,
+        "value": false,
+        "description": "启动游戏时是否隐藏 Mod 加载窗口",
+        "page": "Mod"
+    },
+    "ai_app_key": {
+        "name": "翻译 AI 密钥",
+        "type": "string",
+        "default": "6ebba053fba445508aca80545dd1e90f",
+        "value": "6ebba053fba445508aca80545dd1e90f",
+        "description": "翻译 AI 密钥, 用于翻译文本\n请确保密钥正确\n否则可能导致翻译失败和其他错误问题\n可以去思知官网获取您自己的apikey.",
+        "page": "翻译"
+    },
+    "ai_prompt": {
+        "name": "翻译 AI 提示词",
+        "type": "string",
+        "default": "翻译这个句子(来自于游戏边狱巴士的剧情文本)为中文，直接返回翻译结果: '{text}'",
+        "value": "翻译这个句子(来自于游戏边狱巴士的剧情文本)为中文，直接返回翻译结果: '{text}'",
+        "description": "翻译 AI 提示词\n请确保提示词格式正确\n'{text}'将会被替换为要翻译的文本",
+        "page": "翻译"
     },
     "version_info": {
         "name": "版本信息",
