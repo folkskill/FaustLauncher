@@ -1,4 +1,4 @@
-name: Check Newest Package
+name: 检查汉化包更新
 
 on:
   # 每小时运行一次（在15分钟时）
@@ -13,29 +13,29 @@ jobs:
     
     steps:
       # 设置时区为东八区（北京时间）
-      - name: Set timezone to Beijing
+      - name: 设置时区为东八区（北京时间）
         uses: szenius/set-timezone@v1.2
         with:
           timezoneLinux: "Asia/Shanghai"
       
       # 1. 检出代码
-      - name: Checkout repository
+      - name: 检测库
         uses: actions/checkout@v4
       
       # 2. 设置Python环境
-      - name: Set up Python
+      - name: 设置Python环境
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'  # 指定Python版本
           cache: 'pip'  # 可选：启用pip缓存加速
       
-      - name: Install dependencies
+      - name: 下载依赖
         run: |
           python -m pip install --upgrade pip
           pip install requests
       
       # 4. 运行脚本
-      - name: Run Python script
+      - name: 运行脚本实现汉化包更新检查
         env:
           ADDRESS: ${{ secrets.WEBNOTE_ADDRESS }}
         run: |
