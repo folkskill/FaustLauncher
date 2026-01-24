@@ -8,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+vscode/
 _internal/
 temp/
 workshop/
@@ -128,6 +129,8 @@ FaustLauncher.exe
 main.exe
 create_link.bat
 ChineseFont.ttf
+ModLoader.zip
+7-Zip/
 
 # Pyre type checker
 .pyre/
