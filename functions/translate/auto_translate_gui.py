@@ -163,6 +163,8 @@ class AutoTranslateGUI:
         # 添加示例黑名单
         example_blacklist = """ProjectGSLessonName.json
 P10705.json
+3D309I.json
+S908A.json
 BattleSpeechBubbleDlg.json
 BattleSpeechBubbleDlg_Cultivation.json
 BattleSpeechBubbleDlg_mowe.json

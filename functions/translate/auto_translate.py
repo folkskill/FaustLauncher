@@ -166,7 +166,7 @@ class AutoTranslator:
                 file_name = os.path.basename(target_file)
 
                 if os.path.exists(target_file):
-                    self.window.log_message(f"⚠️ 目标文件已存在，跳过: {file_name}")
+                    # self.window.log_message(f"⚠️ 目标文件已存在，跳过: {file_name}")
                     processed_files += 1
                     if progress_callback:
                         progress_callback(processed_files, total_files, f"已处理 {processed_files}/{total_files} 个文件")

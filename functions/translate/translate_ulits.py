@@ -2,9 +2,7 @@
 
 import requests
 import random
-import json
 from hashlib import md5
-import urllib.parse
 import time
 
 class BaiduTranslatorFixed:
