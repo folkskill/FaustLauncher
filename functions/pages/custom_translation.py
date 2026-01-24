@@ -30,8 +30,8 @@ class CustomTranslationTool:
         
         # 设置窗口图标
         try:
-            if os.path.exists("images/icon/icon.ico"):
-                self.parent_window.iconbitmap("images/icon/icon.ico")
+            if os.path.exists("assets/images/icon/icon.ico"):
+                self.parent_window.iconbitmap("assets/images/icon/icon.ico")
         except:
             pass
 

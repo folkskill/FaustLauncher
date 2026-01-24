@@ -20,8 +20,8 @@ class FontSelectorGUI:
 
         # 设置应用程序图标
         try:
-            if os.path.exists("images/icon/icon.ico"):
-                self.root.iconbitmap("images/icon/icon.ico")
+            if os.path.exists("assets/images/icon/icon.ico"):
+                self.root.iconbitmap("assets/images/icon/icon.ico")
         except:
             pass
         

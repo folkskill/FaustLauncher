@@ -7,6 +7,18 @@
         "description": "游戏安装路径, 请确保路径正确\n否则可能导致启动失败和其他错误问题",
         "page": "通用"
     },
+    "translate_download_way": {
+        "name": "翻译下载方式",
+        "type": "combobox",
+        "options": [
+            "upfile 动态更新下载源",
+            "Github Releases 官方下载源(不推荐)"
+        ],
+        "default": 0,
+        "value": 0,
+        "description": "翻译的下载方式\n推荐使用 upfile 动态更新下载源, 以获取最新的翻译内容\nGithub Releases 官方下载源可能会被墙, 导致下载失败\n若选择 Github Releases 官方下载源, 请确保网络环境可以访问 Github。",
+        "page": "通用"
+    },
     "user_name": {
         "name": "用户名",
         "type": "string",
@@ -21,6 +33,14 @@
         "default": true,
         "value": true,
         "description": "是否显示用户名在边狱巴士的个人车票上",
+        "page": "美化"
+    },
+    "enable_speical_tip": {
+        "name": "启用零协会私活Tip",
+        "type": "boolean",
+        "default": true,
+        "value": true,
+        "description": "零协会曾经为边狱巴士制作过一些私活Tip\n但是现在已经看不见了。\n启用后, 这些Tip将会替换战斗文本的Tip。",
         "page": "美化"
     },
     "enable_skill_style": {

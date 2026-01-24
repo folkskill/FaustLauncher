@@ -63,7 +63,7 @@ class ModernSplashScreen:
         # 添加图标
         try:
             from PIL import Image, ImageTk
-            img = Image.open("images/icon/icon.png")
+            img = Image.open("assets/images/icon/icon.png")
             img = img.resize((100, 100), Image.Resampling.LANCZOS)
             self.icon_img = img
             self.icon_photo = ImageTk.PhotoImage(img)
@@ -171,7 +171,7 @@ class ModernSplashScreen:
                 self.canvas.itemconfig(self.subtitle_item, text=status_texts[status_index])
                 
                 # 继续动画
-                delay = 10 if progress < 80 else 40  # 最后阶段慢一点
+                delay = 10 if progress < 80 else 30  # 最后阶段慢一点
                 self.splash.after(delay, lambda: animate_progress(progress + 1))
             elif progress > 100:
                 # 进度完成，准备淡出

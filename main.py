@@ -12,6 +12,7 @@ from functions.settings_manager import get_settings_manager
 from functions.pages.loading_info import create_simple_splash
 from functions.window_ulits import center_window
 from functions.dowloads.sql_manager import check_new_version, notify_new_version
+from functions.sound_ulits import play_sound
 
 # 添加自定义汉化工具导入
 try:
@@ -100,7 +101,8 @@ class TerminalRedirector:
             ],
             "⚠️": [
                 "警告",
-                "不存在"
+                "不存在",
+                "warning",
             ],
             "❌": [
                 "错误",
@@ -162,8 +164,8 @@ class FaustLauncherApp:
         
         # 设置应用程序图标
         try:
-            if os.path.exists("images/icon/icon.ico"):
-                self.root.iconbitmap("images/icon/icon.ico")
+            if os.path.exists("assets/images/icon/icon.ico"):
+                self.root.iconbitmap("assets/images/icon/icon.ico")
         except:
             pass
         
@@ -371,6 +373,8 @@ class FaustLauncherApp:
 
     def on_tab_changed(self, event):
         """标签页切换时的动画效果"""
+        # play_sound("assets/voices/click.wav")
+
         # 获取当前选中的标签页
         current_tab = self.notebook.index(self.notebook.select())
         
@@ -383,7 +387,7 @@ class FaustLauncherApp:
 
     def load_background_images(self):
         """加载背景图片"""
-        background_dir = "images/background"
+        background_dir = "assets/images/background"
         if os.path.exists(background_dir):
             for file in os.listdir(background_dir):
                 if file.lower().endswith(('.png', '.jpg', '.jpeg')):
@@ -1186,8 +1190,9 @@ def run_game():
         from functions.fancy.skill_info import handle_skill
         handle_skill(config_path + '/LimbusCompany_Data/Lang/LLC_zh-CN/') # type: ignore
 
-    from functions.fancy.hint_set import simple_replace
-    simple_replace(config_path + '/LimbusCompany_Data/Lang/LLC_zh-CN/BattleHint.json') # type: ignore
+    if settings_manager.get_setting('enable_speical_tip'):
+        from functions.fancy.hint_set import simple_replace
+        simple_replace(config_path + '/LimbusCompany_Data/Lang/LLC_zh-CN/BattleHint.json') # type: ignore
 
     # 载入mod并启动游戏
     print("开始载入mod并启动游戏...")
@@ -1316,6 +1321,7 @@ def main():
         
         # 等待一小段时间确保界面完全渲染
         root.after(3000, lambda: root.deiconify())
+        root.after(3000, lambda: play_sound('assets/voices/welcome.wav'))
 
         # 检查设置
         root.after(3300, app.check_settings)

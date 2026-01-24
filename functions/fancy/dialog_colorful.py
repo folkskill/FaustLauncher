@@ -230,8 +230,8 @@ def create_gradient_test_gui(window, root):
     
     # 设置窗口图标（与main.py保持一致）
     try:
-        if os.path.exists("images/icon/icon.ico"):
-            root.iconbitmap("images/icon/icon.ico")
+        if os.path.exists("assets/images/icon/icon.ico"):
+            root.iconbitmap("assets/images/icon/icon.ico")
     except:
         pass
     

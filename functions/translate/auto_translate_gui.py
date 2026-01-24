@@ -37,7 +37,7 @@ class AutoTranslateGUI:
         
         # 设置窗口图标
         try:
-            self.root.iconbitmap("images/icon/icon.ico")
+            self.root.iconbitmap("assets/images/icon/icon.ico")
         except:
             pass
         

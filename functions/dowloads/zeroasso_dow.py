@@ -7,10 +7,12 @@ import threading
 import time
 from functions.dowloads.github_ulits import GitHubReleaseFetcher
 from functions.dowloads.dow_ulits import check_need_up_translate
+from functions.settings_manager import get_settings_manager
 from functions.window_ulits import center_window
 
 # 7-Zip可执行文件路径
 SEVEN_ZIP_PATH = r"7-Zip\7z.exe"
+settings_manager = get_settings_manager()
 
 class DownloadGUI:
     """简化版下载GUI界面"""
@@ -18,9 +20,12 @@ class DownloadGUI:
     def __init__(self, parent, config_path: str = ""):
         self.root = tk.Toplevel(parent)
         self.root.withdraw()  # 先隐藏，防止闪烁
+        # 居中显示窗口
         self.root.title("下载中...")
-        self.root.geometry("500x150")
+        self.root.geometry("500x160")
         self.root.resizable(False, False)
+        self.root.attributes("-topmost", True)
+        center_window(self.root)
         # self.root.attributes("-transparentcolor","#ffffff")
 
         self.config_path = config_path
@@ -28,83 +33,139 @@ class DownloadGUI:
         
         # 创建界面
         self.create_widgets()
+
+        # threading.Thread(target=self.cycle_animation).start()
         
         # 初始化后立即开始下载
         self.start_download()
+
+    def cycle_animation(self):
+        """循环动画效果（可选）"""
+        # 创建循环动画效果的代码，上下跳动窗口位置
+        while self.is_downloading:
+            # 窗口跳动，模拟物理效果，g = 9.8 m/s²
+            # 动画需要平滑过渡
+            for offset in range(0, 7, 1):
+                if not self.is_downloading:
+                    break
+                self.root.geometry(f"+{self.root.winfo_x()}+{self.root.winfo_y() - offset}")
+                self.root.update()
+                time.sleep(0.01)
+            for offset in range(6, -1, -1):
+                if not self.is_downloading:
+                    break
+                self.root.geometry(f"+{self.root.winfo_x()}+{self.root.winfo_y() + offset}")
+                self.root.update()
+                time.sleep(0.05)
+
+        self.root.after(1000, self.cycle_animation)  # 还原位置
         
     def create_widgets(self):
-        """创建美化版下载界面组件"""
-        # 设置窗口背景色
-        self.root.configure(bg='#f5f5f5')
+        """创建现代化美观下载界面组件"""
+        # 设置窗口背景色 - 使用渐变背景
+        self.root.configure(bg='#f8fafc')
         
-        # 主框架 - 添加阴影效果和圆角
-        main_frame = tk.Frame(self.root, bg='#ffffff', relief='flat', bd=2, highlightbackground='#e0e0e0', highlightthickness=1)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # 主框架 - 添加圆角和阴影效果
+        main_frame = tk.Frame(self.root, bg='#ffffff', relief='flat', bd=0, 
+                             highlightbackground='#e2e8f0', highlightthickness=1)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # 标题区域
-        title_frame = tk.Frame(main_frame, bg='#ffffff')
-        title_frame.pack(fill=tk.X, pady=(15, 10))
+        # 标题区域 - 添加渐变背景
+        title_frame = tk.Frame(main_frame, bg='#ffffff', height=60)
+        title_frame.pack(fill=tk.X, pady=(0, 5))
+        title_frame.pack_propagate(False)  # 固定高度
         
-        # 下载图标（使用Unicode字符模拟）
-        download_icon = tk.Label(title_frame, text="⬇️", font=('Microsoft YaHei', 16), bg='#ffffff')
-        download_icon.pack(side=tk.LEFT, padx=(15, 10))
+        # 下载图标区域 - 圆形背景
+        icon_frame = tk.Frame(title_frame, bg='#3b82f6', width=40, height=40)
+        icon_frame.pack(side=tk.LEFT, padx=(20, 15), pady=10)
+        icon_frame.pack_propagate(False)
         
-        # 当前文件 - 使用更醒目的样式
-        self.current_file_var = tk.StringVar(value="正在初始化下载...")
-        current_file_label = tk.Label(title_frame, textvariable=self.current_file_var, 
-                                     font=('Microsoft YaHei', 11, 'bold'), bg='#ffffff', 
-                                     fg='#2c3e50', anchor='w')
-        current_file_label.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 15))
+        download_icon = tk.Label(icon_frame, text="⬇️", font=('Microsoft YaHei', 14), 
+                                bg='#3b82f6', fg='white')
+        download_icon.place(relx=0.5, rely=0.5, anchor='center')
         
-        # 进度条区域
+        # 当前文件信息 - 更优雅的排版
+        file_info_frame = tk.Frame(title_frame, bg='#ffffff')
+        file_info_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 20))
+        
+        # 标题文字
+        title_label = tk.Label(file_info_frame, text="正在下载", 
+                              font=('Microsoft YaHei', 12, 'bold'), bg='#ffffff', 
+                              fg='#1e293b', anchor='w')
+        title_label.pack(anchor='w', pady=(5, 0))
+        
+        # 当前文件 - 使用更精致的样式
+        self.current_file_var = tk.StringVar(value="初始化下载组件...")
+        current_file_label = tk.Label(file_info_frame, textvariable=self.current_file_var, 
+                                     font=('Microsoft YaHei', 10), bg='#ffffff', 
+                                     fg='#64748b', anchor='w')
+        current_file_label.pack(anchor='w', pady=(2, 5))
+        
+        # 进度条区域 - 增加垂直间距
         progress_frame = tk.Frame(main_frame, bg='#ffffff')
-        progress_frame.pack(fill=tk.X, padx=15, pady=(0, 10))
+        progress_frame.pack(fill=tk.X, padx=20, pady=(10, 0))
         
-        # 进度条 - 使用自定义颜色
+        # 进度条 - 现代化设计
         self.progress_var = tk.DoubleVar()
         style = ttk.Style()
-        style.configure("Custom.Horizontal.TProgressbar", 
-                       troughcolor='#ecf0f1', 
-                       background='#3498db', 
-                       bordercolor='#bdc3c7',
-                       lightcolor='#3498db',
-                       darkcolor='#2980b9')
+        style.configure("Modern.Horizontal.TProgressbar", 
+                       troughcolor='#f1f5f9', 
+                       background='#10b981', 
+                       bordercolor='#e2e8f0',
+                       lightcolor='#10b981',
+                       darkcolor='#059669',
+                       thickness=8)
         
         self.progress_bar = ttk.Progressbar(progress_frame, variable=self.progress_var, 
-                                           maximum=100, style="Custom.Horizontal.TProgressbar")
-        self.progress_bar.pack(fill=tk.X, pady=(5, 8))
+                                           maximum=100, style="Modern.Horizontal.TProgressbar")
+        self.progress_bar.pack(fill=tk.X, pady=(0, 12))
         
-        # 进度信息框架
+        # 进度信息框架 - 更紧凑的布局
         info_frame = tk.Frame(main_frame, bg='#ffffff')
-        info_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
+        info_frame.pack(fill=tk.X, padx=20, pady=(0, 15))
         
-        # 进度百分比 - 使用更大的字体和更好的颜色
+        # 左侧：进度百分比和文件大小
+        left_info_frame = tk.Frame(info_frame, bg='#ffffff')
+        left_info_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
         self.progress_text_var = tk.StringVar(value="0%")
-        progress_label = tk.Label(info_frame, textvariable=self.progress_text_var, 
-                                 font=('Microsoft YaHei', 10, 'bold'), bg='#ffffff', 
-                                 fg='#27ae60')
-        progress_label.pack(side=tk.LEFT)
+        progress_label = tk.Label(left_info_frame, textvariable=self.progress_text_var, 
+                                 font=('Microsoft YaHei', 11, 'bold'), bg='#ffffff', 
+                                 fg='#10b981')
+        progress_label.pack(anchor='w')
         
-        # 下载速度 - 使用更专业的显示
-        self.speed_var = tk.StringVar(value="速度: 0 KB/s")
-        speed_label = tk.Label(info_frame, textvariable=self.speed_var, 
+        # 右侧：下载速度和状态
+        right_info_frame = tk.Frame(info_frame, bg='#ffffff')
+        right_info_frame.pack(side=tk.RIGHT)
+        
+        self.speed_var = tk.StringVar(value="0 KB/s")
+        speed_label = tk.Label(right_info_frame, textvariable=self.speed_var, 
                               font=('Microsoft YaHei', 9), bg='#ffffff', 
-                              fg='#7f8c8d')
-        speed_label.pack(side=tk.RIGHT)
+                              fg='#64748b')
+        speed_label.pack(anchor='e')
         
-        # 添加状态指示器
+        # 状态指示器 - 使用更现代的颜色
         status_frame = tk.Frame(main_frame, bg='#ffffff')
-        status_frame.pack(fill=tk.X, padx=15, pady=(0, 10))
+        status_frame.pack(fill=tk.X, padx=20, pady=(0, 10))
         
-        self.status_var = tk.StringVar(value="🔄 准备下载...")
+        self.status_var = tk.StringVar(value="🔄 准备开始下载...")
         status_label = tk.Label(status_frame, textvariable=self.status_var, 
                                font=('Microsoft YaHei', 9), bg='#ffffff', 
-                               fg='#e67e22')
+                               fg='#f59e0b')
         status_label.pack(side=tk.LEFT)
         
-        # 添加底部装饰线
+        # 底部装饰 - 更细的分隔线
         separator = ttk.Separator(main_frame, orient='horizontal')
-        separator.pack(fill=tk.X, padx=15, pady=(5, 0))
+        separator.pack(fill=tk.X, padx=20, pady=(8, 0))
+        
+        # 添加版权信息（可选）
+        copyright_frame = tk.Frame(main_frame, bg='#ffffff')
+        copyright_frame.pack(fill=tk.X, padx=20, pady=(5, 8))
+        
+        copyright_label = tk.Label(copyright_frame, text="FaustLauncher", 
+                                  font=('Microsoft YaHei', 8), bg='#ffffff', 
+                                  fg='#94a3b8')
+        copyright_label.pack(side=tk.RIGHT)
       
     def update_progress(self, percent, downloaded, total, speed):
         """更新进度显示"""
@@ -490,6 +551,23 @@ def download_file_with_gui(url, local_filename, gui, file_name):
     except Exception as e:
         gui.current_file_var.set(f"❌ 下载过程中出现错误: {e}")
         # print(e)
+
+def get_dowload_path_ByNote() -> tuple[str, str] | None:
+    from webFunc import Note
+    from json import loads
+    note = Note("FaustLauncher", 'AutoTranslate')
+    note.fetch_note_info()
+
+    # print("获取到笔记内容:", note.note_content)
+    note = loads(note.note_content)
+    path = note['llc_download_mirror']['seven']['direct']
+    version = note['llc_version']
+
+    if path:
+        print(f"成功获取到下载地址: {path}")
+        return (path, version)
+    print("未获取到下载地址,失败...")
+    return None
     
 def download_and_extract_gui(gui, config_path: str = "") -> bool:
     """带GUI的下载和解压主函数"""
@@ -510,9 +588,9 @@ def download_and_extract_gui(gui, config_path: str = "") -> bool:
         gui.current_file_var.set("❌ 错误: 没有写入权限")
         return False
 
-    # 获取GitHub Release下载链接
-    gui.current_file_var.set("正在获取 GitHub Release 信息...")
-    github_url = ""
+    # 获取下载链接
+    gui.current_file_var.set("正在链接浮务器...")
+    dowload_url = ""
     timeout_counter = 0
     need_update_translate = True
 
@@ -520,22 +598,23 @@ def download_and_extract_gui(gui, config_path: str = "") -> bool:
     # 定义要下载的文件列表
     download_files = [
         {
-            'name': 'LLCCN-Font',
+            'name': 'TTF 字体文件',
             'url': 'https://lz.qaiu.top/parser?url=https://wwbet.lanzoum.com/igRGn3ezd23g&pwd=do1n',
             'temp_filename': 'LLCCN-Font.7z'
         },
         {
-            'name': 'LimbusLocalize',
-            'url': 'github',
+            'name': '零协会汉化包',
+            'url': '',  # URL将在后续代码中动态设置
             'temp_filename': 'LimbusLocalize_latest.7z'
         }
     ]
     
     # 临时文件路径
-    temp_dir = os.path.join(os.path.dirname(__file__), 'temp')
+    temp_dir = 'workshop/'
     os.makedirs(temp_dir, exist_ok=True)
     
     success_count = 0
+    dowload_way = settings_manager.get_setting('translate_download_way')
     
     for file_info in download_files:
         if not gui.is_downloading:
@@ -543,33 +622,56 @@ def download_and_extract_gui(gui, config_path: str = "") -> bool:
 
         # 检查字体文件是否已存在
         if os.path.exists("Font/Context/ChineseFont.ttf") and \
-           file_info['name'] == 'LLCCN-Font':
+           file_info['name'] == 'TTF 字体文件':
             print("字体文件已存在, 无需下载.")
             success_count += 1
             continue
 
-        if file_info['name'] == 'LimbusLocalize':
-            while not github_url:
-                if timeout_counter >= 10:
-                    gui.current_file_var.set("❌ 获取GitHub Release信息失败，已达最大重试次数")
-                    return False
-                
-                github_url, name = get_github_release_url() # type: ignore
+        if file_info['name'] == '零协会汉化包':
 
-                if not github_url:
-                    timeout_counter += 1
-                    gui.current_file_var.set(f"❌ 获取GitHub Release信息失败，准备重试...\n(剩余次数 {10 - timeout_counter})")
-                    time.sleep(1)
-                else:
-                    print (f"获取到下载链接: {github_url}\n 零协汉化版本号: {name}")
-                    if not check_need_up_translate(name):
-                        print("当前已是最新汉化版本，无需更新。")
-                        need_update_translate = False
+            if dowload_way == 1:
+                print("使用 GitHub Release 方式下载汉化文件...")
+
+                while not dowload_url:
+                    if timeout_counter >= 10:
+                        gui.current_file_var.set("❌ 获取GitHub Release信息失败，已达最大重试次数")
+                        return False
+                    
+                    dowload_url, name = get_github_release_url() # type: ignore
+
+                    if not dowload_url:
+                        timeout_counter += 1
+                        gui.current_file_var.set(f"❌ 获取GitHub Release信息失败，准备重试...\n(剩余次数 {10 - timeout_counter})")
+                        time.sleep(1)
                     else:
-                        print("检测到新版本，准备更新...")
+                        print (f"获取到下载链接: {dowload_url}\n 零协汉化版本号: {name}")
+                        file_info['url'] = dowload_url
+                        if not check_need_up_translate(name):
+                            print("当前已是最新汉化版本，无需更新。")
+                            need_update_translate = False
+                        else:
+                            print("检测到新版本，准备更新...")
+
+            elif dowload_way == 0:
+                print("使用upfile下载汉化文件...")
+
+                result = get_dowload_path_ByNote()
+                if result:
+                    dowload_url, version = result
+                    print (f"获取到下载链接: {dowload_url}\n 零协汉化版本号: {version}")
+                    file_info['url'] = dowload_url
+                else:
+                    gui.current_file_var.set("❌ 获取upfile下载地址失败")
+                    return False
+
+                if not check_need_up_translate(version):
+                    print("当前已是最新汉化版本，无需更新。")
+                    need_update_translate = False
+                else:
+                    print("检测到新版本，准备更新...")
 
         if not need_update_translate and \
-            file_info['name'] == 'LimbusLocalize':
+            file_info['name'] == '零协会汉化包':
             success_count += 1
             continue
 
@@ -618,8 +720,5 @@ def download_and_extract_gui(gui, config_path: str = "") -> bool:
 def main_gui(parrent, config_path: str = ""):
     """GUI入口点"""
     gui = DownloadGUI(parrent, config_path)
-    
-    # 居中显示窗口
-    center_window(gui.root)
     
     return gui

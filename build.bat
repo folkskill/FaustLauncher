@@ -1,1 +1,1 @@
-pyinstaller --noconfirm --onefile --windowed --icon "images/icon/icon.ico" --name "FaustLauncher" "main.py"
+pyinstaller --noconfirm --onefile --windowed --icon "assets/images/icon/icon.ico" --name "FaustLauncher" "main.py"

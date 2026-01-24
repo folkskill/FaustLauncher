@@ -5,10 +5,10 @@ from functions.settings_manager import get_settings_manager
 settings_manager = get_settings_manager()
 
 def main(game_path: str):
-    """使用当前系统的运行参数运行main.exe"""
+    """使用当前系统的运行参数运行YiSangModLoader.exe来启动游戏。"""
     global settings_manager
 
-    exe_path = "main.exe"
+    exe_path = "YiSangModLoader.exe"
     
     if not os.path.exists(exe_path):
         print(f"错误: 找不到 {exe_path}")

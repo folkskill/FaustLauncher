@@ -37,7 +37,8 @@ class SettingsManager:
     
     def set_setting(self, key, value):
         """设置设置项的值"""
-        print(f"设置 {key} 为 {value}")
+        # print(f"设置 {key} 为 {value}")
+        
         if key in self.settings:
             # 根据类型转换值
             setting_type = self.settings[key].get('type', 'string')

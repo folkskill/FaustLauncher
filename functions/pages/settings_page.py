@@ -135,6 +135,8 @@ class SettingsPage:
                 self.create_numeric_control(setting_frame, key, setting_info, current_value)
             elif setting_type == 'color':
                 self.create_color_control(setting_frame, key, setting_info, current_value)
+            elif setting_type == 'combobox':
+                self.create_combobox_control(setting_frame, key, setting_info, current_value)
             
             # 添加重置按钮
             reset_btn = tk.Button(setting_frame, text="↺ 重置",
@@ -143,6 +145,41 @@ class SettingsPage:
                                  bg='#f39c12', fg='white',
                                  relief='flat', padx=8, pady=2)
             reset_btn.pack(anchor=tk.E, padx=15, pady=5)
+
+    def create_combobox_control(self, parent, key, setting_info, current_value):
+        """创建下拉框控件"""
+        # 创建控件框架
+        control_frame = tk.Frame(parent, bg=self.bg_color)
+        control_frame.pack(fill=tk.X, padx=15, pady=5)
+        
+        # 获取选项列表
+        options = setting_info.get('options', [])
+        
+        # 创建下拉框
+        combobox = ttk.Combobox(control_frame,
+                               values=options,
+                               font=('Microsoft YaHei UI', 10),
+                               state='readonly',
+                               width=40)
+        
+        # 设置当前值
+        if 0 <= current_value < len(options):
+            combobox.set(options[current_value])
+        else:
+            combobox.set(options[0] if options else "")
+        
+        # 绑定选择事件
+        combobox.bind('<<ComboboxSelected>>', lambda e, k=key, cb=combobox, opts=options: self.on_combobox_change(k, cb, opts))
+        
+        combobox.pack(fill=tk.X, expand=True)
+        
+        self.setting_widgets[key] = combobox
+
+    def on_combobox_change(self, key, combobox, options):
+        """下拉框改变事件"""
+        selected_text = combobox.get()
+        selected_index = options.index(selected_text) if selected_text in options else 0
+        self.settings_manager.set_setting(key, selected_index)
     
     def create_boolean_control(self, parent, key, setting_info, current_value):
         """创建布尔值控件"""
@@ -353,6 +390,13 @@ class SettingsPage:
                             color_frame.config(bg=current_value) # type: ignore
                         except:
                             pass
+            elif setting_type == 'combobox':
+                if isinstance(widget, ttk.Combobox):
+                    options = setting_info.get('options', []) # type: ignore
+                    if 0 <= current_value < len(options): # type: ignore
+                        widget.set(options[current_value])
+                    else:
+                        widget.set(options[0] if options else "")
     
     def refresh_all_displays(self):
         """刷新所有设置项的显示"""
